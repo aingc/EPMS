@@ -16,11 +16,11 @@
         });
 
         function preload() {
+            game.load.image('enemyTest', './assets/Enemy/gruntFairyRed.png');
             game.load.image('sanae', './assets/Player/player1Stand.png');
             game.load.image('singlePrimary', './assets/Player/player1ShotA.png');
             game.load.image('doublePrimary', './assets/Player/player1ShotB.png');
             game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
-            game.load.image('enemyTest', './assets/Enemy/gruntFairyRed.png');
         }
 
         var weapon1;
@@ -28,14 +28,20 @@
         var player;
         var cursors;
         var fireButton;
+        var grunts;
         // weapon.Bullets is a group
         function create() {
-            // weapons
+            // ___WEAPONS___
+
+            // Single Shot
             weapon1 = game.add.weapon(30, 'singlePrimary');
             weapon1.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
             weapon1.bulletAngleOffset = 90;
             weapon1.bulletSpeed = 850;
             weapon1.fireRate = 90;
+            weapon1.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 4;
+            });
 
             weapon2 = game.add.weapon(30, 'doublePrimary');
             weapon2.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
@@ -43,8 +49,28 @@
             weapon2.bulletSpeed = 850;
             weapon2.fireRate = 90;
 
+            // Enemies
+            grunts = game.add.group();
+            grunts.enableBody = true;
+            grunts.physicsBodyType = Phaser.Physics.ARCADE;
+            for (var i = 0; i < 5; i++) {
+                var g = grunts.create(game.world.randomX, game.world.randomY, 'enemyTest');
+                g.body.immovable = true;
+            }
+            grunts.setAll('anchor.x', 0.5);
+            grunts.setAll('anchor.y', 0.5);
+            grunts.setAll('outOfBoundsKill', true);
+            grunts.setAll('checkWorldBounds', true);
+            grunts.setAll('health', 10);
+
+            grunts.forEach(function(enemy) {
+                enemy.damageAmount = 10;
+            });
+
             // Player
             player = this.add.sprite((game.world.width/2) - 13, game.world.height - 150, 'sanae');
+            player.health = 1;
+
             game.physics.arcade.enable(player);
             player.body.collideWorldBounds = true;
 
@@ -60,6 +86,10 @@
         function update() {
             player.body.velocity.x = 0;
             player.body.velocity.y = 0;
+
+            // Collision Checking
+            game.physics.arcade.overlap(player, grunts, playerCollide, null, this);
+            game.physics.arcade.overlap(weapon1.bullets, grunts, bulletCollide, null, this);
 
             // Control Actions
             if (cursors.up.isDown) {
@@ -77,9 +107,19 @@
             }
 
             // Check amount of P and then fire appropriate weapon
-            if (fireButton.isDown) {
+            if (player.alive && fireButton.isDown) {
                 weapon1.fire();
             }
+
+        }
+
+        function playerCollide(player, enemy) {
+            player.damage(enemy.damageAmount);
+        }
+
+        function bulletCollide(bullet, sprite) {
+            bullet.kill();
+            sprite.damage(bullet.damageAmount);
         }
     </script>
 </body>
