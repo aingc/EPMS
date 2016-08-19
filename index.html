@@ -9,16 +9,77 @@
     <div id="container"></div>
 
     <script type="text/javascript">
-        var game = new Phaser.Game(500, 690, Phaser.AUTO, 'container', {
+        var game = new Phaser.Game(512, 600, Phaser.AUTO, 'container', {
             preload: preload,
             create: create,
+            update: update
         });
 
         function preload() {
-            game.load.image('player', './images/Player/player1Stand.png')
+            game.load.image('sanae', './assets/Player/player1Stand.png');
+            game.load.image('singlePrimary', './assets/Player/player1ShotA.png');
+            game.load.image('doublePrimary', './assets/Player/player1ShotB.png');
+            game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
+            game.load.image('enemyTest', './assets/Enemy/gruntFairyRed.png');
         }
+
+        var weapon1;
+        var weapon2;
+        var player;
+        var cursors;
+        var fireButton;
+        // weapon.Bullets is a group
         function create() {
-            game.add.sprite(100, 100, 'player');
+            // weapons
+            weapon1 = game.add.weapon(30, 'singlePrimary');
+            weapon1.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            weapon1.bulletAngleOffset = 90;
+            weapon1.bulletSpeed = 850;
+            weapon1.fireRate = 90;
+
+            weapon2 = game.add.weapon(30, 'doublePrimary');
+            weapon2.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            weapon2.bulletAngleOffset = 90;
+            weapon2.bulletSpeed = 850;
+            weapon2.fireRate = 90;
+
+            // Player
+            player = this.add.sprite((game.world.width/2) - 13, game.world.height - 150, 'sanae');
+            game.physics.arcade.enable(player);
+            player.body.collideWorldBounds = true;
+
+            // Weapon Tracking on Player
+            weapon1.trackSprite(player, (player.width/2), -(player.height/2));
+            weapon2.trackSprite(player, (player.width/2), -(player.height/2));
+
+            // Setting Controls
+            cursors = this.input.keyboard.createCursorKeys();
+            fireButton = this.input.keyboard.addKey(Phaser.KeyCode.Z);
+        }
+
+        function update() {
+            player.body.velocity.x = 0;
+            player.body.velocity.y = 0;
+
+            // Control Actions
+            if (cursors.up.isDown) {
+                player.body.velocity.y = -275;
+            }
+            else if (cursors.down.isDown) {
+                player.body.velocity.y = 275;
+            }
+
+            if (cursors.left.isDown) {
+                player.body.velocity.x = -275;
+            }
+            else if (cursors.right.isDown) {
+                player.body.velocity.x = 275;
+            }
+
+            // Check amount of P and then fire appropriate weapon
+            if (fireButton.isDown) {
+                weapon1.fire();
+            }
         }
     </script>
 </body>
