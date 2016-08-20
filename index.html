@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script type="text/javascript" src="js/library/phaser.js"></script>
+    <title>Title</title>
+</head>
+<body>
+    <div id="container"></div>
+
+    <script type="text/javascript">
+        var game = new Phaser.Game(512, 600, Phaser.AUTO, 'container', {
+            preload: preload,
+            create: create,
+            update: update
+            //render: render
+        });
+
+        function preload() {
+            game.load.image('sanaeHurtbox', './assets/Player/playerHurtbox.png');
+            game.load.image('sanae', './assets/Player/playerStand.png');
+            game.load.image('enemyTest', './assets/Enemy/gruntFairyRed.png');
+            game.load.image('singlePrimary', './assets/Player/playerShotA.png');
+            game.load.image('doublePrimary', './assets/Player/playerShotB.png');
+            game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
+        }
+
+        const playerPhysicsStats = {
+            normalVelocity: 275,
+            focusVelocity: 150
+        };
+        const enemyStats = {
+            gruntHP: 10
+        };
+
+        var weapon1;
+        var weapon2;
+        var playerHurtbox;
+        var playerSprite;
+        var cursors;
+        var fireButton;
+        var focusButton;
+        var grunts;
+
+        var focusCheck = false;
+        // weapon.Bullets is a group
+        function create() {
+            // ___WEAPONS___
+
+            // Single Shot
+            weapon1 = game.add.weapon(30, 'singlePrimary');
+            weapon1.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            weapon1.bulletAngleOffset = 90;
+            weapon1.bulletSpeed = 850;
+            weapon1.fireRate = 90;
+            weapon1.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 4;
+            });
+
+            weapon2 = game.add.weapon(30, 'doublePrimary');
+            weapon2.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            weapon2.bulletAngleOffset = 90;
+            weapon2.bulletSpeed = 850;
+            weapon2.fireRate = 90;
+            weapon2.bullets.forEach(function(bullet) {
+               bullet.damageAmount = 5;
+            });
+
+            // Enemies
+            grunts = game.add.group();
+            grunts.enableBody = true;
+            grunts.physicsBodyType = Phaser.Physics.ARCADE;
+            for (var i = 0; i < 5; i++) {
+                var g = grunts.create(game.world.randomX, game.world.randomY, 'enemyTest');
+                g.body.immovable = true;
+            }
+            grunts.setAll('anchor.x', 0.5);
+            grunts.setAll('anchor.y', 0.5);
+            grunts.setAll('outOfBoundsKill', true);
+            grunts.setAll('checkWorldBounds', true);
+            grunts.setAll('health', enemyStats.gruntHP);
+
+            grunts.forEach(function(enemy) {
+                enemy.damageAmount = 10;
+            });
+
+            // Player
+            playerHurtbox = this.add.sprite((game.world.width/2), game.world.height - 150, 'sanaeHurtbox');
+            playerHurtbox.health = 1;
+            playerHurtbox.anchor.setTo(0.5);
+            playerSprite = this.add.sprite((game.world.width/2), game.world.height - 150, 'sanae');
+            playerSprite.anchor.setTo(0.5);
+
+            game.physics.arcade.enable(playerHurtbox);
+            game.physics.arcade.enable(playerSprite);
+            playerHurtbox.body.collideWorldBounds = true;
+            playerHurtbox.body.setCircle(6, 1);
+            playerSprite.body.collideWorldBounds = true;
+
+            // Weapon Tracking on Player
+            weapon1.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
+            weapon2.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
+
+            // Setting Controls
+            cursors = this.input.keyboard.createCursorKeys();
+            fireButton = this.input.keyboard.addKey(Phaser.KeyCode.Z);
+            focusButton = this.input.keyboard.addKey(Phaser.KeyCode.SHIFT);
+        }
+
+        function update() {
+            playerSprite.sendToBack();
+            playerHurtbox.sendToBack();
+            grunts.callAll('bringToTop');
+            playerHurtbox.body.velocity.x = 0;
+            playerHurtbox.body.velocity.y = 0;
+            playerSprite.body.velocity.x = 0;
+            playerSprite.body.velocity.y = 0;
+
+            // Collision Checking
+            game.physics.arcade.overlap(playerHurtbox, grunts, playerCollide, null, this);
+            game.physics.arcade.overlap(weapon1.bullets, grunts, bulletCollide, null, this);
+
+            // Control Actions
+            if (focusButton.isDown) {
+                playerHurtbox.bringToTop();
+            }
+
+            if (cursors.up.isDown && !focusButton.isDown) {
+                if (playerSprite.body.y <= 0) {
+                    playerHurtbox.body.velocity.y = 0;
+                    playerHurtbox.body.body.y = 16;
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
+                }
+                else {
+                    playerHurtbox.body.velocity.y = -(playerPhysicsStats.normalVelocity);
+                    playerSprite.body.velocity.y = -(playerPhysicsStats.normalVelocity);
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
+                }
+            }
+            else if (cursors.up.isDown && focusButton.isDown) {
+                playerHurtbox.bringToTop();
+                if (playerSprite.body.y <= 0) {
+                    playerHurtbox.body.velocity.y = 0;
+                    playerHurtbox.body.y = 16;
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
+
+                }
+                else {
+                    playerHurtbox.body.velocity.y = -(playerPhysicsStats.focusVelocity);
+                    playerSprite.body.velocity.y = -(playerPhysicsStats.focusVelocity);
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
+                }
+            }
+
+            else if (cursors.down.isDown && !focusButton.isDown) {
+                if (playerSprite.body.y >= 556) {
+                    playerHurtbox.body.velocity.y = 0;
+                    playerHurtbox.body.y = 572;
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
+                }
+                else {
+                    playerHurtbox.body.velocity.y = playerPhysicsStats.normalVelocity;
+                    playerSprite.body.velocity.y = playerPhysicsStats.normalVelocity;
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
+                }
+            }
+            else if (cursors.down.isDown && focusButton.isDown) {
+                playerHurtbox.bringToTop();
+                if (playerSprite.body.y >= 556) {
+                    playerHurtbox.body.velocity.y = 0;
+                    playerHurtbox.body.y = 572;
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
+                }
+                else {
+                    playerHurtbox.body.velocity.y = playerPhysicsStats.focusVelocity;
+                    playerSprite.body.velocity.y = playerPhysicsStats.focusVelocity;
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
+                }
+            }
+
+            if (cursors.left.isDown && !focusButton.isDown) {
+                if (playerSprite.body.x <= 0) {
+                    playerHurtbox.body.velocity.x = 0;
+                    playerHurtbox.body.x = 6;
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
+                }
+                else {
+                    playerHurtbox.body.velocity.x = -(playerPhysicsStats.normalVelocity);
+                    playerSprite.body.velocity.x = -(playerPhysicsStats.normalVelocity);
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
+                }
+            }
+            else if (cursors.left.isDown && focusButton.isDown) {
+                playerHurtbox.bringToTop();
+                if (playerSprite.body.x <= 0) {
+                    playerHurtbox.body.velocity.x = 0;
+                    playerHurtbox.body.x = 6;
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
+                }
+                else {
+                    playerHurtbox.body.velocity.x = -(playerPhysicsStats.focusVelocity);
+                    playerSprite.body.velocity.x = -(playerPhysicsStats.focusVelocity);
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
+                }
+            }
+            else if (cursors.right.isDown && !focusButton.isDown) {
+                if (playerSprite.body.x >= 486) {
+                    playerHurtbox.body.velocity.x = 0;
+                    playerHurtbox.body.x = 492;
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
+                }
+                else {
+                    playerHurtbox.body.velocity.x = playerPhysicsStats.normalVelocity;
+                    playerSprite.body.velocity.x = playerPhysicsStats.normalVelocity;
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
+                }
+            }
+            else if (cursors.right.isDown && focusButton.isDown) {
+                playerHurtbox.bringToTop();
+                if (playerSprite.body.x >= 486) {
+                    playerHurtbox.body.velocity.x = 0;
+                    playerHurtbox.body.x = 492;
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
+                }
+                else {
+                    playerHurtbox.body.velocity.x = playerPhysicsStats.focusVelocity;
+                    playerSprite.body.velocity.x = playerPhysicsStats.focusVelocity;
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
+                }
+            }
+
+            // Check amount of P and then fire appropriate weapon
+            if (playerHurtbox.alive && fireButton.isDown) {
+                weapon1.fire();
+            }
+
+        }
+
+        // DEBUGGING
+        function render() {
+            game.debug.body(playerHurtbox);
+            grunts.forEachAlive(renderGroup, this);
+        }
+
+        function renderGroup(child) {
+            game.debug.body(child, 'rgba(255, 0, 0, 0.4)');
+        }
+        // End DEBUGGING
+
+        function playerCollide(player, enemy) {
+            player.damage(enemy.damageAmount);
+            playerSprite.kill();
+        }
+
+        function bulletCollide(bullet, sprite) {
+            bullet.kill();
+            sprite.damage(bullet.damageAmount);
+        }
+    </script>
+</body>
+</html>
