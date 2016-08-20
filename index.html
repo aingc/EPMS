@@ -13,12 +13,13 @@
             preload: preload,
             create: create,
             update: update
+            //render: render
         });
 
         function preload() {
-            game.load.image('enemyTest', './assets/Enemy/gruntFairyRed.png');
             game.load.image('sanaeHurtbox', './assets/Player/playerHurtbox.png');
             game.load.image('sanae', './assets/Player/playerStand.png');
+            game.load.image('enemyTest', './assets/Enemy/gruntFairyRed.png');
             game.load.image('singlePrimary', './assets/Player/playerShotA.png');
             game.load.image('doublePrimary', './assets/Player/playerShotB.png');
             game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
@@ -79,15 +80,14 @@
             // Player
             playerHurtbox = this.add.sprite((game.world.width/2), game.world.height - 150, 'sanaeHurtbox');
             playerHurtbox.health = 1;
-            playerHurtbox.anchor.x = 0.5;
-            playerHurtbox.anchor.y = 0.5;
+            playerHurtbox.anchor.setTo(0.5);
             playerSprite = this.add.sprite((game.world.width/2), game.world.height - 150, 'sanae');
-            playerSprite.anchor.x = 0.5;
-            playerSprite.anchor.y = 0.5;
+            playerSprite.anchor.setTo(0.5);
 
             game.physics.arcade.enable(playerHurtbox);
             game.physics.arcade.enable(playerSprite);
             playerHurtbox.body.collideWorldBounds = true;
+            playerHurtbox.body.setCircle();
             playerSprite.body.collideWorldBounds = true;
 
             // Weapon Tracking on Player
@@ -101,8 +101,8 @@
         }
 
         function update() {
-            playerSprite.bringToTop();
-            playerSprite.moveUp();
+            playerSprite.sendToBack();
+            playerHurtbox.sendToBack();
             grunts.callAll('bringToTop');
             playerHurtbox.body.velocity.x = 0;
             playerHurtbox.body.velocity.y = 0;
@@ -119,81 +119,106 @@
             }
 
             if (cursors.up.isDown && !focusButton.isDown) {
-                if (spriteOnWorldBounds(playerSprite)) {
-                    playerHurtbox.body.velocity.y = playerPhysicsStats.normalVelocity;
+                if (playerSprite.body.y <= 0) {
+                    playerHurtbox.body.velocity.y = 0;
+                    playerHurtbox.body.body.y = 16;
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
                 }
                 else {
                     playerHurtbox.body.velocity.y = -(playerPhysicsStats.normalVelocity);
                     playerSprite.body.velocity.y = -(playerPhysicsStats.normalVelocity);
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
                 }
             }
             else if (cursors.up.isDown && focusButton.isDown) {
                 playerHurtbox.bringToTop();
-                if (spriteOnWorldBounds(playerSprite)) {
-                    playerHurtbox.body.velocity.y = playerPhysicsStats.focusVelocity;
+                if (playerSprite.body.y <= 0) {
+                    playerHurtbox.body.velocity.y = 0;
+                    playerHurtbox.body.y = 16;
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
+
                 }
                 else {
                     playerHurtbox.body.velocity.y = -(playerPhysicsStats.focusVelocity);
                     playerSprite.body.velocity.y = -(playerPhysicsStats.focusVelocity);
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
                 }
             }
 
             else if (cursors.down.isDown && !focusButton.isDown) {
-                if (spriteOnWorldBounds(playerSprite)) {
-                    playerHurtbox.body.velocity.y = -(playerPhysicsStats.normalVelocity);
+                if (playerSprite.body.y >= 556) {
+                    playerHurtbox.body.velocity.y = 0;
+                    playerHurtbox.body.y = 572;
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
                 }
                 else {
                     playerHurtbox.body.velocity.y = playerPhysicsStats.normalVelocity;
                     playerSprite.body.velocity.y = playerPhysicsStats.normalVelocity;
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
                 }
             }
             else if (cursors.down.isDown && focusButton.isDown) {
                 playerHurtbox.bringToTop();
-                if (spriteOnWorldBounds(playerSprite)) {
-                    playerHurtbox.body.velocity.y = -(playerPhysicsStats.focusVelocity);
+                if (playerSprite.body.y >= 556) {
+                    playerHurtbox.body.velocity.y = 0;
+                    playerHurtbox.body.y = 572;
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
                 }
                 else {
                     playerHurtbox.body.velocity.y = playerPhysicsStats.focusVelocity;
                     playerSprite.body.velocity.y = playerPhysicsStats.focusVelocity;
+                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
                 }
             }
 
             if (cursors.left.isDown && !focusButton.isDown) {
-                if (spriteOnWorldBounds(playerSprite)) {
-                    playerHurtbox.body.velocity.x = playerPhysicsStats.normalVelocity;
+                if (playerSprite.body.x <= 0) {
+                    playerHurtbox.body.velocity.x = 0;
+                    playerHurtbox.body.x = 6;
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
                 else {
                     playerHurtbox.body.velocity.x = -(playerPhysicsStats.normalVelocity);
                     playerSprite.body.velocity.x = -(playerPhysicsStats.normalVelocity);
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
             }
             else if (cursors.left.isDown && focusButton.isDown) {
                 playerHurtbox.bringToTop();
-                if (spriteOnWorldBounds(playerSprite)) {
-                    playerHurtbox.body.velocity.x = playerPhysicsStats.focusVelocity;
+                if (playerSprite.body.x <= 0) {
+                    playerHurtbox.body.velocity.x = 0;
+                    playerHurtbox.body.x = 6;
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
                 else {
                     playerHurtbox.body.velocity.x = -(playerPhysicsStats.focusVelocity);
                     playerSprite.body.velocity.x = -(playerPhysicsStats.focusVelocity);
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
             }
             else if (cursors.right.isDown && !focusButton.isDown) {
-                if (spriteOnWorldBounds(playerSprite)) {
-                    playerHurtbox.body.velocity.x = -(playerPhysicsStats.normalVelocity);
+                if (playerSprite.body.x >= 486) {
+                    playerHurtbox.body.velocity.x = 0;
+                    playerHurtbox.body.x = 492;
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
                 else {
                     playerHurtbox.body.velocity.x = playerPhysicsStats.normalVelocity;
                     playerSprite.body.velocity.x = playerPhysicsStats.normalVelocity;
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
             }
             else if (cursors.right.isDown && focusButton.isDown) {
                 playerHurtbox.bringToTop();
-                if (spriteOnWorldBounds(playerSprite)) {
-                    playerHurtbox.body.velocity.x = -(playerPhysicsStats.focusVelocity);
+                if (playerSprite.body.x >= 486) {
+                    playerHurtbox.body.velocity.x = 0;
+                    playerHurtbox.body.x = 492;
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
                 else {
                     playerHurtbox.body.velocity.x = playerPhysicsStats.focusVelocity;
                     playerSprite.body.velocity.x = playerPhysicsStats.focusVelocity;
+                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
             }
 
@@ -203,6 +228,10 @@
             }
 
         }
+
+        /*function render() {
+            game.debug.body(grunts);
+        }*/
 
         function playerCollide(player, enemy) {
             player.damage(enemy.damageAmount);
@@ -221,6 +250,11 @@
             else {
                 return false;
             }
+        }
+
+        function playerSetCoord(x, y) {
+            playerHurtbox.body.x = x;
+            playerHurtbox.body.y = y;
         }
     </script>
 </body>
