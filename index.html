@@ -17,18 +17,27 @@
 
         function preload() {
             game.load.image('enemyTest', './assets/Enemy/gruntFairyRed.png');
-            game.load.image('sanae', './assets/Player/player1Stand.png');
-            game.load.image('singlePrimary', './assets/Player/player1ShotA.png');
-            game.load.image('doublePrimary', './assets/Player/player1ShotB.png');
+            game.load.image('sanaeHurtbox', './assets/Player/playerHurtbox.png');
+            game.load.image('sanae', './assets/Player/playerStand.png');
+            game.load.image('singlePrimary', './assets/Player/playerShotA.png');
+            game.load.image('doublePrimary', './assets/Player/playerShotB.png');
             game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
         }
 
+        const playerPhysicsStats = {
+            normalVelocity: 275,
+            focusVelocity: 150
+        };
         var weapon1;
         var weapon2;
-        var player;
+        var playerHurtbox;
+        var playerSprite;
         var cursors;
         var fireButton;
+        var focusButton;
         var grunts;
+
+        var focusCheck = false;
         // weapon.Bullets is a group
         function create() {
             // ___WEAPONS___
@@ -68,46 +77,128 @@
             });
 
             // Player
-            player = this.add.sprite((game.world.width/2) - 13, game.world.height - 150, 'sanae');
-            player.health = 1;
+            playerHurtbox = this.add.sprite((game.world.width/2), game.world.height - 150, 'sanaeHurtbox');
+            playerHurtbox.health = 1;
+            playerHurtbox.anchor.x = 0.5;
+            playerHurtbox.anchor.y = 0.5;
+            playerSprite = this.add.sprite((game.world.width/2), game.world.height - 150, 'sanae');
+            playerSprite.anchor.x = 0.5;
+            playerSprite.anchor.y = 0.5;
 
-            game.physics.arcade.enable(player);
-            player.body.collideWorldBounds = true;
+            game.physics.arcade.enable(playerHurtbox);
+            game.physics.arcade.enable(playerSprite);
+            playerHurtbox.body.collideWorldBounds = true;
+            playerSprite.body.collideWorldBounds = true;
 
             // Weapon Tracking on Player
-            weapon1.trackSprite(player, (player.width/2), -(player.height/2));
-            weapon2.trackSprite(player, (player.width/2), -(player.height/2));
+            weapon1.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
+            weapon2.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
 
             // Setting Controls
             cursors = this.input.keyboard.createCursorKeys();
             fireButton = this.input.keyboard.addKey(Phaser.KeyCode.Z);
+            focusButton = this.input.keyboard.addKey(Phaser.KeyCode.SHIFT);
         }
 
         function update() {
-            player.body.velocity.x = 0;
-            player.body.velocity.y = 0;
+            playerSprite.bringToTop();
+            playerSprite.moveUp();
+            grunts.callAll('bringToTop');
+            playerHurtbox.body.velocity.x = 0;
+            playerHurtbox.body.velocity.y = 0;
+            playerSprite.body.velocity.x = 0;
+            playerSprite.body.velocity.y = 0;
 
             // Collision Checking
-            game.physics.arcade.overlap(player, grunts, playerCollide, null, this);
+            game.physics.arcade.overlap(playerHurtbox, grunts, playerCollide, null, this);
             game.physics.arcade.overlap(weapon1.bullets, grunts, bulletCollide, null, this);
 
             // Control Actions
-            if (cursors.up.isDown) {
-                player.body.velocity.y = -275;
-            }
-            else if (cursors.down.isDown) {
-                player.body.velocity.y = 275;
+            if (focusButton.isDown) {
+                playerHurtbox.bringToTop();
             }
 
-            if (cursors.left.isDown) {
-                player.body.velocity.x = -275;
+            if (cursors.up.isDown && !focusButton.isDown) {
+                if (spriteOnWorldBounds(playerSprite)) {
+                    playerHurtbox.body.velocity.y = playerPhysicsStats.normalVelocity;
+                }
+                else {
+                    playerHurtbox.body.velocity.y = -(playerPhysicsStats.normalVelocity);
+                    playerSprite.body.velocity.y = -(playerPhysicsStats.normalVelocity);
+                }
             }
-            else if (cursors.right.isDown) {
-                player.body.velocity.x = 275;
+            else if (cursors.up.isDown && focusButton.isDown) {
+                playerHurtbox.bringToTop();
+                if (spriteOnWorldBounds(playerSprite)) {
+                    playerHurtbox.body.velocity.y = playerPhysicsStats.focusVelocity;
+                }
+                else {
+                    playerHurtbox.body.velocity.y = -(playerPhysicsStats.focusVelocity);
+                    playerSprite.body.velocity.y = -(playerPhysicsStats.focusVelocity);
+                }
+            }
+
+            else if (cursors.down.isDown && !focusButton.isDown) {
+                if (spriteOnWorldBounds(playerSprite)) {
+                    playerHurtbox.body.velocity.y = -(playerPhysicsStats.normalVelocity);
+                }
+                else {
+                    playerHurtbox.body.velocity.y = playerPhysicsStats.normalVelocity;
+                    playerSprite.body.velocity.y = playerPhysicsStats.normalVelocity;
+                }
+            }
+            else if (cursors.down.isDown && focusButton.isDown) {
+                playerHurtbox.bringToTop();
+                if (spriteOnWorldBounds(playerSprite)) {
+                    playerHurtbox.body.velocity.y = -(playerPhysicsStats.focusVelocity);
+                }
+                else {
+                    playerHurtbox.body.velocity.y = playerPhysicsStats.focusVelocity;
+                    playerSprite.body.velocity.y = playerPhysicsStats.focusVelocity;
+                }
+            }
+
+            if (cursors.left.isDown && !focusButton.isDown) {
+                if (spriteOnWorldBounds(playerSprite)) {
+                    playerHurtbox.body.velocity.x = playerPhysicsStats.normalVelocity;
+                }
+                else {
+                    playerHurtbox.body.velocity.x = -(playerPhysicsStats.normalVelocity);
+                    playerSprite.body.velocity.x = -(playerPhysicsStats.normalVelocity);
+                }
+            }
+            else if (cursors.left.isDown && focusButton.isDown) {
+                playerHurtbox.bringToTop();
+                if (spriteOnWorldBounds(playerSprite)) {
+                    playerHurtbox.body.velocity.x = playerPhysicsStats.focusVelocity;
+                }
+                else {
+                    playerHurtbox.body.velocity.x = -(playerPhysicsStats.focusVelocity);
+                    playerSprite.body.velocity.x = -(playerPhysicsStats.focusVelocity);
+                }
+            }
+            else if (cursors.right.isDown && !focusButton.isDown) {
+                if (spriteOnWorldBounds(playerSprite)) {
+                    playerHurtbox.body.velocity.x = -(playerPhysicsStats.normalVelocity);
+                }
+                else {
+                    playerHurtbox.body.velocity.x = playerPhysicsStats.normalVelocity;
+                    playerSprite.body.velocity.x = playerPhysicsStats.normalVelocity;
+                }
+            }
+            else if (cursors.right.isDown && focusButton.isDown) {
+                playerHurtbox.bringToTop();
+                if (spriteOnWorldBounds(playerSprite)) {
+                    playerHurtbox.body.velocity.x = -(playerPhysicsStats.focusVelocity);
+                }
+                else {
+                    playerHurtbox.body.velocity.x = playerPhysicsStats.focusVelocity;
+                    playerSprite.body.velocity.x = playerPhysicsStats.focusVelocity;
+                }
             }
 
             // Check amount of P and then fire appropriate weapon
-            if (player.alive && fireButton.isDown) {
+            if (playerHurtbox.alive && fireButton.isDown) {
                 weapon1.fire();
             }
 
@@ -115,11 +206,21 @@
 
         function playerCollide(player, enemy) {
             player.damage(enemy.damageAmount);
+            playerSprite.kill();
         }
 
         function bulletCollide(bullet, sprite) {
             bullet.kill();
             sprite.damage(bullet.damageAmount);
+        }
+
+        function spriteOnWorldBounds(sprite) {
+            if (sprite.body.onWall() || sprite.body.onCeiling() || sprite.body.onFloor()) {
+                return true;
+            }
+            else {
+                return false;
+            }
         }
     </script>
 </body>
