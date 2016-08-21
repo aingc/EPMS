@@ -57,9 +57,8 @@
         var fireButton;
         var focusButton;
         var grunts;
-        var livingGrunts = [];
+        var gruntWeapons = [];
 
-        var focusCheck = false;
         // weapon.Bullets is a group
         function create() {
             // ___WEAPONS___
@@ -88,7 +87,7 @@
             grunts = game.add.group();
             grunts.enableBody = true;
             grunts.physicsBodyType = Phaser.Physics.ARCADE;
-            for (var i = 0; i < 5; i++) {
+            /*for (var i = 0; i < 5; i++) {
                 var g = grunts.create(game.world.randomX, game.world.randomY, 'enemyTest');
                 g.body.immovable = true;
             }
@@ -100,7 +99,7 @@
 
             grunts.forEach(function(enemy) {
                 enemy.damageAmount = 10;
-            });
+            });*/
 
             // Enemy Bullets
             /*gruntBullets = game.add.weapon(10, 'gruntShot');
@@ -112,14 +111,14 @@
             gruntBullets.bullets.forEach(function(bullet) {
                 bullet.damageAmount = 1;
             });*/
-            gruntBullets = game.add.group();
+            /*gruntBullets = game.add.group();
             gruntBullets.enableBody = true;
             gruntBullets.physicsBodyType = Phaser.Physics.ARCADE;
             gruntBullets.createMultiple(100, 'gruntShot');
             gruntBullets.setAll('anchor.x', 0.5);
             gruntBullets.setAll('anchor.y', 0.5);
             gruntBullets.setAll('outOfBoundsKill', true);
-            gruntBullets.setAll('checkWorldBounds', true);
+            gruntBullets.setAll('checkWorldBounds', true);*/
 
 
             // Player
@@ -149,6 +148,10 @@
             cursors = this.input.keyboard.createCursorKeys();
             fireButton = this.input.keyboard.addKey(Phaser.KeyCode.Z);
             focusButton = this.input.keyboard.addKey(Phaser.KeyCode.SHIFT);
+
+            spawnGrunt(game.world.randomX, game.world.randomY);
+            spawnGrunt(game.world.randomX, game.world.randomY);
+
         }
 
         function update() {
@@ -163,7 +166,14 @@
             // Collision Checking
             game.physics.arcade.overlap(playerHurtbox, grunts, playerCollide, null, this);
             game.physics.arcade.overlap(weapon1.bullets, grunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(gruntBullets, playerHurtbox, gruntShotCollide, null, this);
+
+            // if there is exists a grunt weapon in the gruntWeapons array (means that an enemy has spawned as well), then check collision for each weapon
+            if (gruntWeapons.length > 0) {
+                for (var i = 0; i < gruntWeapons.length; i++) {
+                    //since its a group vs sprite, then first argument to gruntShotCollide is the sprite
+                    game.physics.arcade.overlap(gruntWeapons[i].bullets, playerHurtbox, gruntShotCollide, null, this);
+                }
+            }
 
             // Control Actions
             if (focusButton.isDown) {
@@ -264,9 +274,19 @@
             if (playerHurtbox.alive && fireButton.isDown) {
                 weapon1.fire();
             }
-            if (playerHurtbox.alive && game.time.now > gruntFireTimer) {
+            /*if (playerHurtbox.alive && game.time.now > gruntFireTimer) {
                 gruntFire();
                 console.log('fired');
+            }*/
+
+            // if player is a live and gruntWeapons exist shoot every weapon at the player
+            if (playerHurtbox.alive && gruntWeapons.length > 0) {
+                for (var i = 0; i < gruntWeapons.length; i++) {
+                    // in the future dynamically set rotation of the bullet to match direction of sprite
+                    if (grunts.getChildAt(i).health > 0) {
+                        gruntWeapons[i].fireAtSprite(playerHurtbox);
+                    }
+                }
             }
         }
 
@@ -287,18 +307,25 @@
             playerSprite.kill();
         }
 
+        // when sprite dies, its bullets linger and will still deal damage
         function bulletCollide(bullet, sprite) {
             bullet.kill();
             sprite.damage(bullet.damageAmount);
+            var weaponKillIndex = grunts.getChildIndex(sprite);
+            console.log(weaponKillIndex);
+            if (sprite.health <= 0 && gruntWeapons[weaponKillIndex].bullets.total <= 0) {
+                gruntWeapons.splice(weaponKillIndex, 1);
+            }
         }
 
-        function gruntShotCollide(bullet, player) {
-            gruntBullets.callAll('kill');
+        function gruntShotCollide(player, bullet) {
+            bullet.kill();
             console.log('bullet killed');
-            playerHurtbox.kill();
+            player.kill();
             playerSprite.kill();
         }
 
+        /*
         function gruntFire() {
             gruntBullet = gruntBullets.getFirstExists(false);
             grunts.forEachAlive(function(grunt) {
@@ -306,6 +333,27 @@
                 game.physics.arcade.moveToObject(gruntBullet, playerHurtbox, enemyWeapon.gruntBulletSpeed);
                 gruntFireTimer = game.time.now + enemyWeapon.gruntBulletFireRate;
             });
+        }*/
+
+        // perfect now
+        function spawnGrunt(x, y) {
+            var newGrunt = grunts.create(x, y, 'enemyTest');
+            newGrunt.anchor.setTo(0.5);
+            newGrunt.outOfBoundsKill = true;
+            newGrunt.checkWorldBounds = true;
+            newGrunt.setHealth(enemyStats.gruntHP);
+            newGrunt.damageAmount = 10;
+            newGrunt.body.immovable = true;
+
+            var newWeapon = game.add.weapon(30, 'gruntShot');
+            newWeapon.bulletSpeed = enemyWeapon.gruntBulletSpeed;
+            newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
+            newWeapon.fireRate = enemyWeapon.gruntBulletFireRate;
+            newWeapon.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 1;
+            });
+            newWeapon.trackSprite(newGrunt, 0, 0);
+            gruntWeapons.push(newWeapon);
         }
     </script>
 </body>
