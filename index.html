@@ -33,7 +33,8 @@
             focusVelocity: 150
         };
         const enemyStats = {
-            gruntHP: 10,
+            aimGruntHP: 10,
+            twoWayGruntHP: 24,
             gruntXvelocity: 50,
             gruntYvelocity: 100
         };
@@ -58,9 +59,15 @@
         var cursors;
         var fireButton;
         var focusButton;
-        var grunts;
-        var gruntWeapons = [];
-        var weaponDeathIndexSignals = [];
+        var aimGrunts;
+        var twoWayGrunts;
+
+        // Enemy Weapons
+        var aimGruntWeapons = [];
+        var aimGruntWeaponDIS = []; // Stands for Death Index Signals
+        var twoWayGruntWeapons = [];
+        var twoWayGruntWeaponDIS = [];
+
 
         // weapon.Bullets is a group
         function create() {
@@ -92,9 +99,12 @@
             });
 
             // Enemies
-            grunts = game.add.group();
-            grunts.enableBody = true;
-            grunts.physicsBodyType = Phaser.Physics.ARCADE;
+            aimGrunts = game.add.group();
+            aimGrunts.enableBody = true;
+            aimGrunts.physicsBodyType = Phaser.Physics.ARCADE;
+            twoWayGrunts = game.add.group();
+            twoWayGrunts.enableBody = true;
+            twoWayGrunts.physicsBodyType = Phaser.Physics.ARCADE;
             /*for (var i = 0; i < 5; i++) {
                 var g = grunts.create(game.world.randomX, game.world.randomY, 'enemyTest');
                 g.body.immovable = true;
@@ -103,7 +113,7 @@
             grunts.setAll('anchor.y', 0.5);
             grunts.setAll('outOfBoundsKill', true);
             grunts.setAll('checkWorldBounds', true);
-            grunts.setAll('health', enemyStats.gruntHP);
+            grunts.setAll('health', enemyStats.aimGruntHP);
 
             grunts.forEach(function(enemy) {
                 enemy.damageAmount = 10;
@@ -152,10 +162,10 @@
             fireButton = this.input.keyboard.addKey(Phaser.KeyCode.Z);
             focusButton = this.input.keyboard.addKey(Phaser.KeyCode.SHIFT);
 
-            //spawnAimGrunt(game.world.randomX, 100, 0, enemyStats.gruntYvelocity, 'gruntBlue', 'gruntShot');
-            //spawnAimGrunt(game.world.randomX, 200, 0, enemyStats.gruntYvelocity, 'gruntRed', 'gruntShot');
-            //spawnAimGrunt(game.world.randomX, 50, -(enemyStats.gruntXvelocity), enemyStats.gruntYvelocity, 'gruntBlue', 'gruntShot');
-            //spawnAimGrunt(game.world.randomX, 50, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntRed', 'gruntShot');
+            spawnAimGrunt(game.world.randomX, 100, 0, enemyStats.gruntYvelocity, 'gruntBlue', 'gruntShot');
+            spawnAimGrunt(game.world.randomX, 200, 0, enemyStats.gruntYvelocity, 'gruntRed', 'gruntShot');
+            spawnAimGrunt(game.world.randomX, 50, -(enemyStats.gruntXvelocity), enemyStats.gruntYvelocity, 'gruntBlue', 'gruntShot');
+            spawnAimGrunt(game.world.randomX, 50, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntRed', 'gruntShot');
 
         }
 
@@ -163,135 +173,29 @@
             playerSprite.sendToBack();
             playerHurtbox.sendToBack();
             bg.sendToBack();
-            grunts.callAll('bringToTop');
+            aimGrunts.callAll('bringToTop');
+            twoWayGrunts.callAll('bringToTop');
             playerHurtbox.body.velocity.x = 0;
             playerHurtbox.body.velocity.y = 0;
             playerSprite.body.velocity.x = 0;
             playerSprite.body.velocity.y = 0;
 
             // Collision Checking
-            game.physics.arcade.overlap(playerHurtbox, grunts, playerCollide, null, this);
-            game.physics.arcade.overlap(weapon1.bullets, grunts, bulletCollide, null, this);
+                // aimGrunts
+            game.physics.arcade.overlap(playerHurtbox, aimGrunts, playerCollide, null, this);
+            game.physics.arcade.overlap(weapon1.bullets, aimGrunts, bulletCollide, null, this);
 
-            // if there is exists a grunt weapon in the gruntWeapons array (means that an enemy has spawned as well), then check collision for each weapon
-            if (gruntWeapons.length > 0) {
-                for (var i = 0; i < gruntWeapons.length; i++) {
-                    //since its a group vs sprite, then first argument to gruntShotCollide is the sprite
-                    if (gruntWeapons[i] != null) {
-                        game.physics.arcade.overlap(gruntWeapons[i].bullets, playerHurtbox, gruntShotCollide, null, this);
-                    }
-                }
-            }
+                // twoWayGrunts
+            game.physics.arcade.overlap(playerHurtbox, twoWayGrunts, playerCollide, null, this);
+            game.physics.arcade.overlap(weapon1.bullets, twoWayGrunts, bulletCollide, null, this);
 
-            /*
-            // Control Actions
-            if (focusButton.isDown) {
-                playerHurtbox.bringToTop();
-            }
+            // Check Enemy Bullet Collisions/Overlap
+            checkGruntBulletOverlap(aimGruntWeapons);
 
-            if (cursors.up.isDown && !focusButton.isDown) {
-                if (playerSprite.body.y <= 0) {
-                    playerHurtbox.body.velocity.y = 0;
-                    playerHurtbox.body.body.y = 16;
-                }
-                else {
-                    playerHurtbox.body.velocity.y = -(playerPhysicsStats.normalVelocity);
-                    playerSprite.body.velocity.y = -(playerPhysicsStats.normalVelocity);
-                }
-            }
-            else if (cursors.up.isDown && focusButton.isDown) {
-                playerHurtbox.bringToTop();
-                if (playerSprite.body.y <= 0) {
-                    playerHurtbox.body.velocity.y = 0;
-                    playerHurtbox.body.y = 16;
-
-                }
-                else {
-                    playerHurtbox.body.velocity.y = -(playerPhysicsStats.focusVelocity);
-                    playerSprite.body.velocity.y = -(playerPhysicsStats.focusVelocity);
-                }
-            }
-
-            else if (cursors.down.isDown && !focusButton.isDown) {
-                if (playerSprite.body.y >= 556) {
-                    playerHurtbox.body.velocity.y = 0;
-                    playerHurtbox.body.y = 572;
-                }
-                else {
-                    playerHurtbox.body.velocity.y = playerPhysicsStats.normalVelocity;
-                    playerSprite.body.velocity.y = playerPhysicsStats.normalVelocity;
-                }
-            }
-            else if (cursors.down.isDown && focusButton.isDown) {
-                playerHurtbox.bringToTop();
-                if (playerSprite.body.y >= 556) {
-                    playerHurtbox.body.velocity.y = 0;
-                    playerHurtbox.body.y = 572;
-                }
-                else {
-                    playerHurtbox.body.velocity.y = playerPhysicsStats.focusVelocity;
-                    playerSprite.body.velocity.y = playerPhysicsStats.focusVelocity;
-                }
-            }
-
-            if (cursors.left.isDown && !focusButton.isDown) {
-                if (playerSprite.body.x <= 0) {
-                    playerHurtbox.body.velocity.x = 0;
-                    playerHurtbox.body.x = 6;
-                }
-                else {
-                    playerHurtbox.body.velocity.x = -(playerPhysicsStats.normalVelocity);
-                    playerSprite.body.velocity.x = -(playerPhysicsStats.normalVelocity);
-                }
-            }
-            else if (cursors.left.isDown && focusButton.isDown) {
-                playerHurtbox.bringToTop();
-                if (playerSprite.body.x <= 0) {
-                    playerHurtbox.body.velocity.x = 0;
-                    playerHurtbox.body.x = 6;
-                }
-                else {
-                    playerHurtbox.body.velocity.x = -(playerPhysicsStats.focusVelocity);
-                    playerSprite.body.velocity.x = -(playerPhysicsStats.focusVelocity);
-                }
-            }
-            else if (cursors.right.isDown && !focusButton.isDown) {
-                if (playerSprite.body.x >= 486) {
-                    playerHurtbox.body.velocity.x = 0;
-                    playerHurtbox.body.x = 492;
-                }
-                else {
-                    playerHurtbox.body.velocity.x = playerPhysicsStats.normalVelocity;
-                    playerSprite.body.velocity.x = playerPhysicsStats.normalVelocity;
-                }
-            }
-            else if (cursors.right.isDown && focusButton.isDown) {
-                playerHurtbox.bringToTop();
-                if (playerSprite.body.x >= 486) {
-                    playerHurtbox.body.velocity.x = 0;
-                    playerHurtbox.body.x = 492;
-                }
-                else {
-                    playerHurtbox.body.velocity.x = playerPhysicsStats.focusVelocity;
-                    playerSprite.body.velocity.x = playerPhysicsStats.focusVelocity;
-                }
-            }
-
-            // Check amount of P and then fire appropriate weapon
-            if (playerHurtbox.alive && fireButton.isDown) {
-                weapon1.fire();
-            }
-            */
             checkControls();
-            // if player is a live and gruntWeapons exist shoot every weapon at the player
-            if (playerHurtbox.alive && gruntWeapons.length > 0) {
-                for (var i = 0; i < gruntWeapons.length; i++) {
-                    //if (grunts.getChildAt(i).health > 0 && gruntWeapons[i] != null && weaponDeathIndexSignals[i] != null && weaponDeathIndexSignals[i].callCount <= 0) {
-                    if (grunts.getChildAt(i).health > 0 && weaponDeathIndexSignals[i].callCount <= 0) {
-                        gruntWeapons[i].fireAtSprite(playerHurtbox);
-                    }
-                }
-            }
+
+            // Enemy Shooting
+            gruntFireSprite(aimGrunts, aimGruntWeapons, aimGruntWeaponDIS);
 
             // Scroll the bg
             bg.tilePosition.y += 2;
@@ -300,7 +204,8 @@
         // DEBUGGING
         function render() {
             game.debug.body(playerHurtbox);
-            grunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
+            aimGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
+            twoWayGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0,4)');
             weapon1.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
         }
 
@@ -318,7 +223,7 @@
             if (cursors.up.isDown && !focusButton.isDown) {
                 if (playerSprite.body.y <= 0) {
                     playerHurtbox.body.velocity.y = 0;
-                    playerHurtbox.body.body.y = 16;
+                    playerHurtbox.body.y = 16;
                 }
                 else {
                     playerHurtbox.body.velocity.y = -(playerPhysicsStats.normalVelocity);
@@ -419,20 +324,32 @@
             sprite.damage(bullet.damageAmount);
 
             /*
-            // weaponDeathIndexSignals length will be 1 or greater when a grunt has died
+            // aimGruntWeaponDIS length will be 1 or greater when a grunt has died
             // So when the grunt at index has been killed, weapon should also be 'killed', by splicing from array
-            if (weaponDeathIndexSignals.length >= 1) {
-                for (var i = 0; i < weaponDeathIndexSignals.length; i++) {
+            if (aimGruntWeaponDIS.length >= 1) {
+                for (var i = 0; i < aimGruntWeaponDIS.length; i++) {
                     console.log('in for loop');
                     // Set Weapon to null in the array when the grunt owner at respected index has died and all its bullets are gone
-                    if (weaponDeathIndexSignals[i] != null && weaponDeathIndexSignals[i].callCount >= 1 && gruntWeapons[i].bullets <= 0) {
+                    if (aimGruntWeaponDIS[i] != null && aimGruntWeaponDIS[i].callCount >= 1 && aimGruntWeapons[i].bullets <= 0) {
                         console.log('hello');
-                        gruntWeapons[i] = null;
-                        weaponDeathIndexSignals[i] = null;
+                        aimGruntWeapons[i] = null;
+                        aimGruntWeaponDIS[i] = null;
                     }
                 }
             }
             */
+        }
+
+        function checkGruntBulletOverlap(gruntWeaponArray) {
+            // if there is exists a grunt weapon in the aimGruntWeapons array (means that an enemy has spawned as well), then check collision for each weapon
+            if (gruntWeaponArray.length > 0) {
+                for (var i = 0; i < gruntWeaponArray.length; i++) {
+                    //since its a group vs sprite, then first argument to gruntShotCollide is the sprite
+                    if (gruntWeaponArray[i] != null) {
+                        game.physics.arcade.overlap(gruntWeaponArray[i].bullets, playerHurtbox, gruntShotCollide, null, this);
+                    }
+                }
+            }
         }
 
         function gruntShotCollide(player, bullet) {
@@ -443,11 +360,11 @@
 
         // perfect now
         function spawnAimGrunt(x, y, velocityX, velocityY, spriteName, weaponName) {
-            var newGrunt = grunts.create(x, y, spriteName);
+            var newGrunt = aimGrunts.create(x, y, spriteName);
             newGrunt.anchor.setTo(0.5);
             newGrunt.outOfBoundsKill = true;
             newGrunt.checkWorldBounds = true;
-            newGrunt.setHealth(enemyStats.gruntHP);
+            newGrunt.setHealth(enemyStats.aimGruntHP);
             newGrunt.damageAmount = 10;
             newGrunt.body.immovable = true;
             newGrunt.body.velocity.x = velocityX;
@@ -461,12 +378,46 @@
                 bullet.damageAmount = 1;
             });
             newWeapon.trackSprite(newGrunt, 0, 0);
-            gruntWeapons.push(newWeapon);
-            weaponDeathIndexSignals.push(newGrunt.events.onKilled.add(checkGruntKill, this));
+            aimGruntWeapons.push(newWeapon);
+            aimGruntWeaponDIS.push(newGrunt.events.onKilled.add(checkGruntKill, this, this, aimGrunts));
+        }
+        
+        function spawnTwoWayGrunt(x, y, velocityX, velocityY, spriteName, weaponName) {
+            var newGrunt = twoWayGrunts.create(x, y, spriteName);
+            newGrunt.anchor.setTo(0.5);
+            newGrunt.outOfBoundsKill = true;
+            newGrunt.checkWorldBounds = true;
+            newGrunt.setHealth(enemyStats.twoWayGruntHP);
+            newGrunt.damageAmount = 10;
+            newGrunt.body.immovable = true;
+            newGrunt.body.velocity.x = velocityX;
+            newGrunt.body.velocity.y = velocityY;
+
+            var newWeapon = game.add.weapon(60, weaponName);
+            newWeapon.bulletSpeed = enemyWeapon.gruntBulletSpeed;
+            newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
+            newWeapon.fireRate = enemyWeapon.gruntBulletFireRate;
+            newWeapon.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 1;
+            });
+            newWeapon.trackSprite(newGrunt, 0, 0);
+            twoWayGruntWeapons.push(newWeapon);
+            twoWayGruntWeaponDIS.push(newGrunt.events.onKilled.add(checkGruntKill, this, this, twoWayGrunts));
         }
 
-        function checkGruntKill(grunt) {
-            return grunts.getChildIndex(grunt);
+        function gruntFireSprite(gruntGroup, gruntWeaponArray, gruntWeaponDIS) {
+            // if player is a live and aimGruntWeapons exist shoot every weapon at the player
+            if (playerHurtbox.alive && gruntWeaponArray.length > 0) {
+                for (var i = 0; i < gruntWeaponArray.length; i++) {
+                    //if (grunts.getChildAt(i).health > 0 && aimGruntWeapons[i] != null && aimGruntWeaponDIS[i] != null && aimGruntWeaponDIS[i].callCount <= 0) {
+                    if (gruntGroup.getChildAt(i).health > 0 && gruntWeaponDIS[i].callCount <= 0) {
+                        gruntWeaponArray[i].fireAtSprite(playerHurtbox);
+                    }
+                }
+            }
+        }
+        function checkGruntKill(grunt, gruntGroup) {
+            return gruntGroup.getChildIndex(grunt);
         }
     </script>
 </body>
