@@ -17,9 +17,12 @@
         });
 
         function preload() {
+            game.load.image('stage01BG', './assets/Background/stage01blue.png');
             game.load.image('sanaeHurtbox', './assets/Player/playerHurtbox.png');
             game.load.image('sanae', './assets/Player/playerStand.png');
-            game.load.image('enemyTest', './assets/Enemy/gruntFairyRed.png');
+            game.load.image('gruntShot', './assets/Enemy/enemyBullets/gruntFairyShot.png');
+            game.load.image('gruntRed', './assets/Enemy/gruntFairyRed.png');
+            game.load.image('gruntBlue', './assets/Enemy/gruntFairyBlue.png');
             game.load.image('singlePrimary', './assets/Player/playerShotA.png');
             game.load.image('doublePrimary', './assets/Player/playerShotB.png');
             game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
@@ -30,9 +33,25 @@
             focusVelocity: 150
         };
         const enemyStats = {
-            gruntHP: 10
+            aimGruntHP: 10,
+            twoWayGruntHP: 24,
+            gruntXvelocity: 50,
+            gruntYvelocity: 100
+        };
+        const enemyWeapon = {
+            gruntBulletSpeed: 250,
+            gruntBulletFireRate: 500,
+            gruntBulletAngleOffset: 90
+        };
+        const weaponStats = {
+            weapon1BulletSpeed: 850,
+            weapon1BulletFireRate: 90,
+            weapon1BulletAngleOffSet: 90,
+            weapon1Damage: 4,
+            weapon2Damage: 6
         };
 
+        var bg;
         var weapon1;
         var weapon2;
         var playerHurtbox;
@@ -40,23 +59,36 @@
         var cursors;
         var fireButton;
         var focusButton;
-        var grunts;
+        var aimGrunts;
+        var twoWayGrunts;
 
-        var focusCheck = false;
+        // Enemy Weapons
+        var aimGruntWeapons = [];
+        var aimGruntWeaponDIS = []; // Stands for Death Index Signals
+        var twoWayGruntWeapons = [];
+        var twoWayGruntWeaponDIS = [];
+
+
         // weapon.Bullets is a group
         function create() {
+            // Scrolling Background
+            //bgRT = game.add.tileSprite(256, 0, 256, 600, 'stage01BGrtSide');
+            //bgLT = game.add.tileSprite(0, 0, 256, 600, 'stage01BGltSide');
+            bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
+
             // ___WEAPONS___
 
             // Single Shot
             weapon1 = game.add.weapon(30, 'singlePrimary');
             weapon1.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-            weapon1.bulletAngleOffset = 90;
-            weapon1.bulletSpeed = 850;
-            weapon1.fireRate = 90;
+            weapon1.bulletAngleOffset = weaponStats.weapon1BulletAngleOffSet;
+            weapon1.bulletSpeed = weaponStats.weapon1BulletSpeed;
+            weapon1.fireRate = weaponStats.weapon1BulletFireRate;
             weapon1.bullets.forEach(function(bullet) {
-                bullet.damageAmount = 4;
+                bullet.damageAmount = weaponStats.weapon1Damage;
             });
 
+            // Double Shot
             weapon2 = game.add.weapon(30, 'doublePrimary');
             weapon2.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
             weapon2.bulletAngleOffset = 90;
@@ -67,10 +99,13 @@
             });
 
             // Enemies
-            grunts = game.add.group();
-            grunts.enableBody = true;
-            grunts.physicsBodyType = Phaser.Physics.ARCADE;
-            for (var i = 0; i < 5; i++) {
+            aimGrunts = game.add.group();
+            aimGrunts.enableBody = true;
+            aimGrunts.physicsBodyType = Phaser.Physics.ARCADE;
+            twoWayGrunts = game.add.group();
+            twoWayGrunts.enableBody = true;
+            twoWayGrunts.physicsBodyType = Phaser.Physics.ARCADE;
+            /*for (var i = 0; i < 5; i++) {
                 var g = grunts.create(game.world.randomX, game.world.randomY, 'enemyTest');
                 g.body.immovable = true;
             }
@@ -78,11 +113,31 @@
             grunts.setAll('anchor.y', 0.5);
             grunts.setAll('outOfBoundsKill', true);
             grunts.setAll('checkWorldBounds', true);
-            grunts.setAll('health', enemyStats.gruntHP);
+            grunts.setAll('health', enemyStats.aimGruntHP);
 
             grunts.forEach(function(enemy) {
                 enemy.damageAmount = 10;
-            });
+            });*/
+
+            // Enemy Bullets
+            /*gruntBullets = game.add.weapon(10, 'gruntShot');
+            gruntBullets.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            gruntBullets.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
+            gruntBullets.bulletSpeed = enemyWeapon.gruntBulletSpeed;
+            gruntBullets.fireRate = enemyWeapon.gruntBulletFireRate;
+            gruntBullets.createBullets(2, 'gruntShot', grunts);
+            gruntBullets.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 1;
+            });*/
+            /*gruntBullets = game.add.group();
+            gruntBullets.enableBody = true;
+            gruntBullets.physicsBodyType = Phaser.Physics.ARCADE;
+            gruntBullets.createMultiple(100, 'gruntShot');
+            gruntBullets.setAll('anchor.x', 0.5);
+            gruntBullets.setAll('anchor.y', 0.5);
+            gruntBullets.setAll('outOfBoundsKill', true);
+            gruntBullets.setAll('checkWorldBounds', true);*/
+
 
             // Player
             playerHurtbox = this.add.sprite((game.world.width/2), game.world.height - 150, 'sanaeHurtbox');
@@ -97,7 +152,8 @@
             playerHurtbox.body.setCircle(6, 1);
             playerSprite.body.collideWorldBounds = true;
 
-            // Weapon Tracking on Player
+            // Weapon Tracking
+            // -- Weapon on player
             weapon1.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
             weapon2.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
 
@@ -105,22 +161,61 @@
             cursors = this.input.keyboard.createCursorKeys();
             fireButton = this.input.keyboard.addKey(Phaser.KeyCode.Z);
             focusButton = this.input.keyboard.addKey(Phaser.KeyCode.SHIFT);
+
+            spawnAimGrunt(game.world.randomX, 100, 0, enemyStats.gruntYvelocity, 'gruntBlue', 'gruntShot');
+            spawnAimGrunt(game.world.randomX, 200, 0, enemyStats.gruntYvelocity, 'gruntRed', 'gruntShot');
+            spawnAimGrunt(game.world.randomX, 50, -(enemyStats.gruntXvelocity), enemyStats.gruntYvelocity, 'gruntBlue', 'gruntShot');
+            spawnAimGrunt(game.world.randomX, 50, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntRed', 'gruntShot');
+
         }
 
         function update() {
             playerSprite.sendToBack();
             playerHurtbox.sendToBack();
-            grunts.callAll('bringToTop');
+            bg.sendToBack();
+            aimGrunts.callAll('bringToTop');
+            twoWayGrunts.callAll('bringToTop');
             playerHurtbox.body.velocity.x = 0;
             playerHurtbox.body.velocity.y = 0;
             playerSprite.body.velocity.x = 0;
             playerSprite.body.velocity.y = 0;
 
             // Collision Checking
-            game.physics.arcade.overlap(playerHurtbox, grunts, playerCollide, null, this);
-            game.physics.arcade.overlap(weapon1.bullets, grunts, bulletCollide, null, this);
+                // aimGrunts
+            game.physics.arcade.overlap(playerHurtbox, aimGrunts, playerCollide, null, this);
+            game.physics.arcade.overlap(weapon1.bullets, aimGrunts, bulletCollide, null, this);
 
-            // Control Actions
+                // twoWayGrunts
+            game.physics.arcade.overlap(playerHurtbox, twoWayGrunts, playerCollide, null, this);
+            game.physics.arcade.overlap(weapon1.bullets, twoWayGrunts, bulletCollide, null, this);
+
+            // Check Enemy Bullet Collisions/Overlap
+            checkGruntBulletOverlap(aimGruntWeapons);
+
+            checkControls();
+
+            // Enemy Shooting
+            gruntFireSprite(aimGrunts, aimGruntWeapons, aimGruntWeaponDIS);
+
+            // Scroll the bg
+            bg.tilePosition.y += 2;
+        }
+
+        // DEBUGGING
+        function render() {
+            game.debug.body(playerHurtbox);
+            aimGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
+            twoWayGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0,4)');
+            weapon1.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
+        }
+
+        function renderGroup(child, strColor) {
+            game.debug.body(child, strColor);
+        }
+        // End DEBUGGING
+
+        // Control Actions
+        function checkControls() {
             if (focusButton.isDown) {
                 playerHurtbox.bringToTop();
             }
@@ -128,13 +223,11 @@
             if (cursors.up.isDown && !focusButton.isDown) {
                 if (playerSprite.body.y <= 0) {
                     playerHurtbox.body.velocity.y = 0;
-                    playerHurtbox.body.body.y = 16;
-                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
+                    playerHurtbox.body.y = 16;
                 }
                 else {
                     playerHurtbox.body.velocity.y = -(playerPhysicsStats.normalVelocity);
                     playerSprite.body.velocity.y = -(playerPhysicsStats.normalVelocity);
-                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
                 }
             }
             else if (cursors.up.isDown && focusButton.isDown) {
@@ -142,26 +235,21 @@
                 if (playerSprite.body.y <= 0) {
                     playerHurtbox.body.velocity.y = 0;
                     playerHurtbox.body.y = 16;
-                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
 
                 }
                 else {
                     playerHurtbox.body.velocity.y = -(playerPhysicsStats.focusVelocity);
                     playerSprite.body.velocity.y = -(playerPhysicsStats.focusVelocity);
-                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
                 }
             }
-
             else if (cursors.down.isDown && !focusButton.isDown) {
                 if (playerSprite.body.y >= 556) {
                     playerHurtbox.body.velocity.y = 0;
                     playerHurtbox.body.y = 572;
-                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
                 }
                 else {
                     playerHurtbox.body.velocity.y = playerPhysicsStats.normalVelocity;
                     playerSprite.body.velocity.y = playerPhysicsStats.normalVelocity;
-                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
                 }
             }
             else if (cursors.down.isDown && focusButton.isDown) {
@@ -169,12 +257,10 @@
                 if (playerSprite.body.y >= 556) {
                     playerHurtbox.body.velocity.y = 0;
                     playerHurtbox.body.y = 572;
-                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
                 }
                 else {
                     playerHurtbox.body.velocity.y = playerPhysicsStats.focusVelocity;
                     playerSprite.body.velocity.y = playerPhysicsStats.focusVelocity;
-                    //playerHurtbox.body.y = playerSprite.body.y + playerSprite.body.halfHeight;
                 }
             }
 
@@ -182,12 +268,10 @@
                 if (playerSprite.body.x <= 0) {
                     playerHurtbox.body.velocity.x = 0;
                     playerHurtbox.body.x = 6;
-                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
                 else {
                     playerHurtbox.body.velocity.x = -(playerPhysicsStats.normalVelocity);
                     playerSprite.body.velocity.x = -(playerPhysicsStats.normalVelocity);
-                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
             }
             else if (cursors.left.isDown && focusButton.isDown) {
@@ -195,24 +279,20 @@
                 if (playerSprite.body.x <= 0) {
                     playerHurtbox.body.velocity.x = 0;
                     playerHurtbox.body.x = 6;
-                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
                 else {
                     playerHurtbox.body.velocity.x = -(playerPhysicsStats.focusVelocity);
                     playerSprite.body.velocity.x = -(playerPhysicsStats.focusVelocity);
-                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
             }
             else if (cursors.right.isDown && !focusButton.isDown) {
                 if (playerSprite.body.x >= 486) {
                     playerHurtbox.body.velocity.x = 0;
                     playerHurtbox.body.x = 492;
-                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
                 else {
                     playerHurtbox.body.velocity.x = playerPhysicsStats.normalVelocity;
                     playerSprite.body.velocity.x = playerPhysicsStats.normalVelocity;
-                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
             }
             else if (cursors.right.isDown && focusButton.isDown) {
@@ -220,12 +300,10 @@
                 if (playerSprite.body.x >= 486) {
                     playerHurtbox.body.velocity.x = 0;
                     playerHurtbox.body.x = 492;
-                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
                 else {
                     playerHurtbox.body.velocity.x = playerPhysicsStats.focusVelocity;
                     playerSprite.body.velocity.x = playerPhysicsStats.focusVelocity;
-                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
             }
 
@@ -233,28 +311,113 @@
             if (playerHurtbox.alive && fireButton.isDown) {
                 weapon1.fire();
             }
-
         }
-
-        // DEBUGGING
-        function render() {
-            game.debug.body(playerHurtbox);
-            grunts.forEachAlive(renderGroup, this);
-        }
-
-        function renderGroup(child) {
-            game.debug.body(child, 'rgba(255, 0, 0, 0.4)');
-        }
-        // End DEBUGGING
 
         function playerCollide(player, enemy) {
             player.damage(enemy.damageAmount);
             playerSprite.kill();
         }
 
+        // when sprite dies, its bullets linger and will still deal damage
         function bulletCollide(bullet, sprite) {
             bullet.kill();
             sprite.damage(bullet.damageAmount);
+
+            /*
+            // aimGruntWeaponDIS length will be 1 or greater when a grunt has died
+            // So when the grunt at index has been killed, weapon should also be 'killed', by splicing from array
+            if (aimGruntWeaponDIS.length >= 1) {
+                for (var i = 0; i < aimGruntWeaponDIS.length; i++) {
+                    console.log('in for loop');
+                    // Set Weapon to null in the array when the grunt owner at respected index has died and all its bullets are gone
+                    if (aimGruntWeaponDIS[i] != null && aimGruntWeaponDIS[i].callCount >= 1 && aimGruntWeapons[i].bullets <= 0) {
+                        console.log('hello');
+                        aimGruntWeapons[i] = null;
+                        aimGruntWeaponDIS[i] = null;
+                    }
+                }
+            }
+            */
+        }
+
+        function checkGruntBulletOverlap(gruntWeaponArray) {
+            // if there is exists a grunt weapon in the aimGruntWeapons array (means that an enemy has spawned as well), then check collision for each weapon
+            if (gruntWeaponArray.length > 0) {
+                for (var i = 0; i < gruntWeaponArray.length; i++) {
+                    //since its a group vs sprite, then first argument to gruntShotCollide is the sprite
+                    if (gruntWeaponArray[i] != null) {
+                        game.physics.arcade.overlap(gruntWeaponArray[i].bullets, playerHurtbox, gruntShotCollide, null, this);
+                    }
+                }
+            }
+        }
+
+        function gruntShotCollide(player, bullet) {
+            bullet.kill();
+            player.kill();
+            playerSprite.kill();
+        }
+
+        // perfect now
+        function spawnAimGrunt(x, y, velocityX, velocityY, spriteName, weaponName) {
+            var newGrunt = aimGrunts.create(x, y, spriteName);
+            newGrunt.anchor.setTo(0.5);
+            newGrunt.outOfBoundsKill = true;
+            newGrunt.checkWorldBounds = true;
+            newGrunt.setHealth(enemyStats.aimGruntHP);
+            newGrunt.damageAmount = 10;
+            newGrunt.body.immovable = true;
+            newGrunt.body.velocity.x = velocityX;
+            newGrunt.body.velocity.y = velocityY;
+
+            var newWeapon = game.add.weapon(30, weaponName);
+            newWeapon.bulletSpeed = enemyWeapon.gruntBulletSpeed;
+            newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
+            newWeapon.fireRate = enemyWeapon.gruntBulletFireRate;
+            newWeapon.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 1;
+            });
+            newWeapon.trackSprite(newGrunt, 0, 0);
+            aimGruntWeapons.push(newWeapon);
+            aimGruntWeaponDIS.push(newGrunt.events.onKilled.add(checkGruntKill, this, this, aimGrunts));
+        }
+        
+        function spawnTwoWayGrunt(x, y, velocityX, velocityY, spriteName, weaponName) {
+            var newGrunt = twoWayGrunts.create(x, y, spriteName);
+            newGrunt.anchor.setTo(0.5);
+            newGrunt.outOfBoundsKill = true;
+            newGrunt.checkWorldBounds = true;
+            newGrunt.setHealth(enemyStats.twoWayGruntHP);
+            newGrunt.damageAmount = 10;
+            newGrunt.body.immovable = true;
+            newGrunt.body.velocity.x = velocityX;
+            newGrunt.body.velocity.y = velocityY;
+
+            var newWeapon = game.add.weapon(60, weaponName);
+            newWeapon.bulletSpeed = enemyWeapon.gruntBulletSpeed;
+            newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
+            newWeapon.fireRate = enemyWeapon.gruntBulletFireRate;
+            newWeapon.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 1;
+            });
+            newWeapon.trackSprite(newGrunt, 0, 0);
+            twoWayGruntWeapons.push(newWeapon);
+            twoWayGruntWeaponDIS.push(newGrunt.events.onKilled.add(checkGruntKill, this, this, twoWayGrunts));
+        }
+
+        function gruntFireSprite(gruntGroup, gruntWeaponArray, gruntWeaponDIS) {
+            // if player is a live and aimGruntWeapons exist shoot every weapon at the player
+            if (playerHurtbox.alive && gruntWeaponArray.length > 0) {
+                for (var i = 0; i < gruntWeaponArray.length; i++) {
+                    //if (grunts.getChildAt(i).health > 0 && aimGruntWeapons[i] != null && aimGruntWeaponDIS[i] != null && aimGruntWeaponDIS[i].callCount <= 0) {
+                    if (gruntGroup.getChildAt(i).health > 0 && gruntWeaponDIS[i].callCount <= 0) {
+                        gruntWeaponArray[i].fireAtSprite(playerHurtbox);
+                    }
+                }
+            }
+        }
+        function checkGruntKill(grunt, gruntGroup) {
+            return gruntGroup.getChildIndex(grunt);
         }
     </script>
 </body>
