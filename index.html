@@ -35,7 +35,7 @@
         };
         const enemyWeapon = {
             gruntBulletSpeed: 250,
-            gruntBulletFireRate: 250,
+            gruntBulletFireRate: 500,
             gruntBulletAngleOffset: 90
         };
         const weaponStats = {
@@ -48,9 +48,6 @@
 
         var weapon1;
         var weapon2;
-        var gruntBullet;
-        var gruntBullets;
-        var gruntFireTimer = enemyWeapon.gruntBulletFireRate;
         var playerHurtbox;
         var playerSprite;
         var cursors;
@@ -58,6 +55,7 @@
         var focusButton;
         var grunts;
         var gruntWeapons = [];
+        var weaponDeathIndexSignals = [];
 
         // weapon.Bullets is a group
         function create() {
@@ -139,18 +137,15 @@
             weapon1.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
             weapon2.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
 
-            // -- Enemy Shots
-            /*grunts.forEach(function(grunt) {
-                gruntBullets.trackSprite(grunt, 0, 0);
-            });*/
-
             // Setting Controls
             cursors = this.input.keyboard.createCursorKeys();
             fireButton = this.input.keyboard.addKey(Phaser.KeyCode.Z);
             focusButton = this.input.keyboard.addKey(Phaser.KeyCode.SHIFT);
 
-            spawnGrunt(game.world.randomX, game.world.randomY);
-            spawnGrunt(game.world.randomX, game.world.randomY);
+            console.log(grunts.length);
+            spawnGrunt(game.world.randomX, 100);
+            spawnGrunt(game.world.randomX, 200);
+            spawnGrunt(game.world.randomX, 50);
 
         }
 
@@ -171,7 +166,9 @@
             if (gruntWeapons.length > 0) {
                 for (var i = 0; i < gruntWeapons.length; i++) {
                     //since its a group vs sprite, then first argument to gruntShotCollide is the sprite
-                    game.physics.arcade.overlap(gruntWeapons[i].bullets, playerHurtbox, gruntShotCollide, null, this);
+                    if (gruntWeapons[i] != null) {
+                        game.physics.arcade.overlap(gruntWeapons[i].bullets, playerHurtbox, gruntShotCollide, null, this);
+                    }
                 }
             }
 
@@ -261,12 +258,10 @@
                 if (playerSprite.body.x >= 486) {
                     playerHurtbox.body.velocity.x = 0;
                     playerHurtbox.body.x = 492;
-                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
                 else {
                     playerHurtbox.body.velocity.x = playerPhysicsStats.focusVelocity;
                     playerSprite.body.velocity.x = playerPhysicsStats.focusVelocity;
-                    //playerHurtbox.body.x = playerSprite.body.x + playerSprite.body.halfWidth;
                 }
             }
 
@@ -274,16 +269,12 @@
             if (playerHurtbox.alive && fireButton.isDown) {
                 weapon1.fire();
             }
-            /*if (playerHurtbox.alive && game.time.now > gruntFireTimer) {
-                gruntFire();
-                console.log('fired');
-            }*/
 
             // if player is a live and gruntWeapons exist shoot every weapon at the player
             if (playerHurtbox.alive && gruntWeapons.length > 0) {
                 for (var i = 0; i < gruntWeapons.length; i++) {
-                    // in the future dynamically set rotation of the bullet to match direction of sprite
-                    if (grunts.getChildAt(i).health > 0) {
+                    //if (grunts.getChildAt(i).health > 0 && gruntWeapons[i] != null && weaponDeathIndexSignals[i] != null && weaponDeathIndexSignals[i].callCount <= 0) {
+                    if (grunts.getChildAt(i).health > 0 && weaponDeathIndexSignals[i].callCount <= 0) {
                         gruntWeapons[i].fireAtSprite(playerHurtbox);
                     }
                 }
@@ -311,29 +302,29 @@
         function bulletCollide(bullet, sprite) {
             bullet.kill();
             sprite.damage(bullet.damageAmount);
-            var weaponKillIndex = grunts.getChildIndex(sprite);
-            console.log(weaponKillIndex);
-            if (sprite.health <= 0 && gruntWeapons[weaponKillIndex].bullets.total <= 0) {
-                gruntWeapons.splice(weaponKillIndex, 1);
+
+            /*
+            // weaponDeathIndexSignals length will be 1 or greater when a grunt has died
+            // So when the grunt at index has been killed, weapon should also be 'killed', by splicing from array
+            if (weaponDeathIndexSignals.length >= 1) {
+                for (var i = 0; i < weaponDeathIndexSignals.length; i++) {
+                    console.log('in for loop');
+                    // Set Weapon to null in the array when the grunt owner at respected index has died and all its bullets are gone
+                    if (weaponDeathIndexSignals[i] != null && weaponDeathIndexSignals[i].callCount >= 1 && gruntWeapons[i].bullets <= 0) {
+                        console.log('hello');
+                        gruntWeapons[i] = null;
+                        weaponDeathIndexSignals[i] = null;
+                    }
+                }
             }
+            */
         }
 
         function gruntShotCollide(player, bullet) {
             bullet.kill();
-            console.log('bullet killed');
             player.kill();
             playerSprite.kill();
         }
-
-        /*
-        function gruntFire() {
-            gruntBullet = gruntBullets.getFirstExists(false);
-            grunts.forEachAlive(function(grunt) {
-                gruntBullet.reset(grunt.body.x, grunt.body.y);
-                game.physics.arcade.moveToObject(gruntBullet, playerHurtbox, enemyWeapon.gruntBulletSpeed);
-                gruntFireTimer = game.time.now + enemyWeapon.gruntBulletFireRate;
-            });
-        }*/
 
         // perfect now
         function spawnGrunt(x, y) {
@@ -354,6 +345,11 @@
             });
             newWeapon.trackSprite(newGrunt, 0, 0);
             gruntWeapons.push(newWeapon);
+            weaponDeathIndexSignals.push(newGrunt.events.onKilled.add(checkGruntKill, this));
+        }
+
+        function checkGruntKill(grunt) {
+            return grunts.getChildIndex(grunt);
         }
     </script>
 </body>
