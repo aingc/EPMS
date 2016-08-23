@@ -42,14 +42,14 @@
             straightGruntHP: 16,
             rotateGruntHP: 24,
             gruntXvelocity: 50,
-            gruntYvelocity: 100
+            gruntYvelocity: 50
         };
         const enemyWeapon = {
             gruntBulletSpeed: 250,
             gruntBulletFireRate: 500,
             gruntBulletAngleOffset: 90,
-            gruntStraightBulletSpeed: 100,
-            gruntStraightBulletFireRate: 600, //16 is the lowest and quickest possible
+            gruntStraightBulletSpeed: 150, //100
+            gruntStraightBulletFireRate: 850, //16 is the lowest and quickest possible
             gruntRotateBulletSpeed: 150,
             gruntRotateBulletFireRate: 16
         };
@@ -187,7 +187,13 @@
             //spawnAimGrunt(game.world.randomX, 50, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntAimRed', 'gruntShot');
             //spawnRotateGrunt(game.world.randomX, 100, 0, 50, 'gruntRotate', 'gruntShot');
             //spawnRotateGrunt(game.world.randomX, 100, 0, 50, 'gruntRotate', 'gruntShot');
-            spawnStraightGrunt(game.world.randomX, 100, 0, 0, 'gruntStraightRed', 'straightGruntShot');
+            //spawnStraightGrunt(0, 50, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
+            //spawnStraightGrunt(50, 150, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot');
+            spawnStraightGrunt(game.world.width, 50, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
+            spawnStraightGrunt(game.world.width, 110, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
+            spawnStraightGrunt(game.world.width, 170, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
+            spawnStraightGrunt(game.world.width, 230, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
+            //spawnStraightGrunt(game.world.width, 150, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot');
 
         }
 
@@ -469,7 +475,10 @@
                 for (var i = 0; i < gruntWeaponArray.length; i++) {
                     // shoot at player when self is healthy and its onKilled signal hasn't been called
                     if (gruntGroup.getChildAt(i).health > 0 && gruntWeaponDIS[i].callCount <= 0) {
-                        gruntWeaponArray[i].fire(null, gruntGroup.getChildAt(i).body.x + 22, game.world.height);
+                        //gruntWeaponArray[i].fire(null, gruntGroup.getChildAt(i).body.x + 22, game.world.height);
+                        gruntWeaponArray[i].fireAngle = 90;
+                        //gruntWeaponArray[i].bullets.setAll('body.velocity.x', 0);
+                        gruntWeaponArray[i].fire();
                     }
                 }
             }
@@ -498,6 +507,17 @@
 
         function checkGruntKill(grunt, gruntGroup) {
             return gruntGroup.getChildIndex(grunt);
+        }
+
+        // Stage 01
+        function startStageOne() {
+            switch(game.time.now) {
+                case 0:
+                    //code block
+                    break;
+                default:
+                    break;
+            }
         }
     </script>
 </body>
