@@ -33,6 +33,12 @@
             game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
         }
 
+        var playerStats = {
+            score: 0,
+            graze: 0,
+            lives: 3,
+            bomb: 2
+        }
         const playerPhysicsStats = {
             normalVelocity: 275,
             focusVelocity: 150
@@ -67,6 +73,7 @@
         var weapon2;
         var playerHurtbox;
         var playerSprite;
+        var playerDeathSignal;
         var cursors;
         var fireButton;
         var focusButton;
@@ -86,9 +93,7 @@
         // weapon.Bullets is a group
         function create() {
             // Scrolling Background
-            //bgRT = game.add.tileSprite(256, 0, 256, 600, 'stage01BGrtSide');
-            //bgLT = game.add.tileSprite(0, 0, 256, 600, 'stage01BGltSide');
-            bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
+            //bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
 
             // ___WEAPONS___
 
@@ -160,16 +165,20 @@
 
             // Player
             playerHurtbox = this.add.sprite((game.world.width/2), game.world.height - 150, 'sanaeHurtbox');
-            playerHurtbox.health = 1;
+            playerHurtbox.health = 3;
             playerHurtbox.anchor.setTo(0.5);
             playerSprite = this.add.sprite((game.world.width/2), game.world.height - 150, 'sanae');
+            playerSprite.health = 3;
             playerSprite.anchor.setTo(0.5);
+
 
             game.physics.arcade.enable(playerHurtbox);
             game.physics.arcade.enable(playerSprite);
             playerHurtbox.body.collideWorldBounds = true;
             playerHurtbox.body.setCircle(6, 1);
             playerSprite.body.collideWorldBounds = true;
+            console.log('hitbox x: ' + playerHurtbox.body.x + ', y: ' + playerHurtbox.body.y + ', ' + 'offset' + playerHurtbox.offsetX + ', ' + playerHurtbox.offsetY);
+            console.log('sprite x: ' + playerSprite.body.x + ', y: ' + playerSprite.body.y + ', ' + 'offset' + playerSprite.offsetX + ', ' + playerSprite.offsetY);
 
             // Weapon Tracking
             // -- Weapon on player
@@ -189,18 +198,20 @@
             //spawnRotateGrunt(game.world.randomX, 100, 0, 50, 'gruntRotate', 'gruntShot');
             //spawnStraightGrunt(0, 50, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
             //spawnStraightGrunt(50, 150, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot');
-            spawnStraightGrunt(game.world.width, 50, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
-            spawnStraightGrunt(game.world.width, 110, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
-            spawnStraightGrunt(game.world.width, 170, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
-            spawnStraightGrunt(game.world.width, 230, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
+            spawnStraightGrunt(game.world.width - 100, 50, 0, 0, 'gruntStraightRed', 'straightGruntShot');
+            //spawnStraightGrunt(game.world.width, 50, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
+            //spawnStraightGrunt(game.world.width, 110, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
+            //spawnStraightGrunt(game.world.width, 170, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
+            //spawnStraightGrunt(game.world.width, 230, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
             //spawnStraightGrunt(game.world.width, 150, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot');
 
         }
 
         function update() {
-            playerSprite.sendToBack();
+            //playerSprite.sendToBack();
             playerHurtbox.sendToBack();
-            bg.sendToBack();
+            playerSprite.sendToBack();
+            //bg.sendToBack();
             aimGrunts.callAll('bringToTop');
             straightGrunts.callAll('bringToTop');
             rotateGrunts.callAll('bringToTop');
@@ -213,6 +224,7 @@
                 // aimGrunts
             game.physics.arcade.overlap(playerHurtbox, aimGrunts, playerCollide, null, this);
             game.physics.arcade.overlap(weapon1.bullets, aimGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(weapon2.bullets, aimGrunts, bulletCollide, null, this);
 
                 // straightGrunts
             game.physics.arcade.overlap(playerHurtbox, straightGrunts, playerCollide, null, this);
@@ -235,7 +247,7 @@
             gruntRotateFire(rotateGrunts, rotateGruntWeapons, rotateGruntWeaponDIS);
 
             // Scroll the bg
-            bg.tilePosition.y += 2;
+            //bg.tilePosition.y += 2;
         }
 
         // DEBUGGING
@@ -354,7 +366,25 @@
 
         function playerCollide(player, enemy) {
             player.damage(enemy.damageAmount);
-            playerSprite.kill();
+            playerSprite.damage(enemy.damageAmount);
+            killAllEnemyBullets();
+            player.body.x = 250;
+            player.body.y = 443.5;
+            playerSprite.body.x = 243;
+            playerSprite.body.y = 428;
+            //var tempHp = player.health;
+            //player.reset(game.world.width / 2, game.world.height - 150, player.health);
+            console.log(player.health);
+            console.log(playerSprite.health);
+            /*if (playerDeathSignal.callCount < playerStats.lives && !player.alive) {
+                player.revive(1);
+                playerSprite.revive(1);
+                playerSprite.sendToBack();
+                player.sendToBack();
+                playerSprite.moveUp();
+                player.moveUp();
+            }*/
+            // game over screen here
         }
 
         // when sprite dies, its bullets linger and will still deal damage
@@ -379,8 +409,15 @@
 
         function gruntShotCollide(player, bullet) {
             bullet.kill();
-            player.kill();
-            playerSprite.kill();
+            player.damage(bullet.damageAmount);
+            playerSprite.damage(bullet.damageAmount);
+            killAllEnemyBullets();
+            player.body.x = 250;
+            player.body.y = 443.5;
+            playerSprite.body.x = 243;
+            playerSprite.body.y = 428;
+            console.log(player.health);
+            console.log(playerSprite.health);
             // start gameover state here
         }
 
@@ -391,7 +428,7 @@
             newGrunt.outOfBoundsKill = true;
             newGrunt.checkWorldBounds = true;
             newGrunt.setHealth(enemyStats.aimGruntHP);
-            newGrunt.damageAmount = 10;
+            newGrunt.damageAmount = 1;
             newGrunt.body.immovable = true;
             newGrunt.body.velocity.x = velocityX;
             newGrunt.body.velocity.y = velocityY;
@@ -415,7 +452,7 @@
             newGrunt.outOfBoundsKill = true;
             newGrunt.checkWorldBounds = true;
             newGrunt.setHealth(enemyStats.rotateGruntHP);
-            newGrunt.damageAmount = 10;
+            newGrunt.damageAmount = 1;
             newGrunt.body.immovable = true;
             newGrunt.body.velocity.x = velocityX;
             newGrunt.body.velocity.y = velocityY;
@@ -439,7 +476,7 @@
             newGrunt.outOfBoundsKill = true;
             newGrunt.checkWorldBounds = true;
             newGrunt.setHealth(enemyStats.straightGruntHP);
-            newGrunt.damageAmount = 10;
+            newGrunt.damageAmount = 1;
             newGrunt.body.immovable = true;
             newGrunt.body.velocity.x = velocityX;
             newGrunt.body.velocity.y = velocityY;
@@ -509,6 +546,23 @@
             return gruntGroup.getChildIndex(grunt);
         }
 
+        function killAllEnemyBullets() {
+            if (aimGruntWeapons.length > 0) {
+                for (var i = 0; i < aimGruntWeapons.length; i++) {
+                    aimGruntWeapons[i].killAll();
+                }
+            }
+            if (straightGruntWeapons.length > 0) {
+                for (var j = 0; j < straightGruntWeapons.length; i++) {
+                    straightGruntWeapons[j].killAll();
+                }
+            }
+            if (rotateGruntWeapons.length > 0) {
+                for (var k = 0; k < rotateGruntWeapons.length; i++) {
+                    rotateGruntWeapons[k].killAll();
+                }
+            }
+        }
         // Stage 01
         function startStageOne() {
             switch(game.time.now) {
