@@ -367,7 +367,6 @@
         function playerCollide(player, enemy) {
             player.damage(enemy.damageAmount);
             playerSprite.damage(enemy.damageAmount);
-            killAllEnemyBullets();
             player.body.x = 250;
             player.body.y = 443.5;
             playerSprite.body.x = 243;
@@ -411,7 +410,6 @@
             bullet.kill();
             player.damage(bullet.damageAmount);
             playerSprite.damage(bullet.damageAmount);
-            killAllEnemyBullets();
             player.body.x = 250;
             player.body.y = 443.5;
             playerSprite.body.x = 243;
@@ -546,7 +544,7 @@
             return gruntGroup.getChildIndex(grunt);
         }
 
-        function killAllEnemyBullets() {
+        /*function killAllEnemyBullets() {
             if (aimGruntWeapons.length > 0) {
                 for (var i = 0; i < aimGruntWeapons.length; i++) {
                     aimGruntWeapons[i].killAll();
@@ -562,7 +560,7 @@
                     rotateGruntWeapons[k].killAll();
                 }
             }
-        }
+        }*/
         // Stage 01
         function startStageOne() {
             switch(game.time.now) {
