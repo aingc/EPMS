@@ -38,7 +38,8 @@
             graze: 0,
             lives: 3,
             bomb: 2
-        }
+        };
+        var lifeText;
         const playerPhysicsStats = {
             normalVelocity: 275,
             focusVelocity: 150
@@ -191,6 +192,12 @@
             fireButton = this.input.keyboard.addKey(Phaser.KeyCode.Z);
             focusButton = this.input.keyboard.addKey(Phaser.KeyCode.SHIFT);
 
+            // Lives Text
+            lifeText = game.add.text(10, game.world.height - 30, 'Lives: ' + playerHurtbox.health, { font: '20px Arial', fill: '#FFF' });
+            lifeText.render = function() {
+                lifeText.text = 'Lives: ' + Math.max(playerHurtbox.health, 0);
+            };
+
             // enemy testing
             //spawnAimGrunt(game.world.randomX, 100, 0, enemyStats.gruntYvelocity, 'gruntAimBlue', 'gruntShot');
             //spawnAimGrunt(game.world.randomX, 200, 0, enemyStats.gruntYvelocity, 'gruntAimRed', 'gruntShot');
@@ -201,7 +208,7 @@
             //spawnStraightGrunt(0, 50, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
             //spawnStraightGrunt(50, 150, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot');
 
-            //spawnStraightGrunt(game.world.width - 100, 50, 0, 0, 'gruntStraightRed', 'straightGruntShot');
+            spawnStraightGrunt(game.world.width - 100, 50, 0, 0, 'gruntStraightRed', 'straightGruntShot');
             //spawnStraightGrunt(100, 50, 0, 0, 'gruntStraightBlue', 'straightGruntShot');
             //spawnAimGrunt(250, 50, 0, 0, 'gruntAimRed', 'aimGruntShot');
             //spawnAimGrunt(350, 50, 0, 0, 'gruntAimBlue', 'aimGruntShot');
@@ -375,6 +382,7 @@
             console.log('enemy collide');
             player.damage(enemy.damageAmount);
             playerSprite.damage(enemy.damageAmount);
+            lifeText.render();
             player.body.x = 250;
             player.body.y = 443.5;
             playerSprite.body.x = 243;
@@ -389,15 +397,15 @@
                 }
             }
             if (straightGruntWeapons.length > 0) {
-                for (var i = 0; i < straightGruntWeapons.length; i++) {
+                for (var j = 0; j < straightGruntWeapons.length; j++) {
                     //straightGruntWeapons[straightGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
-                    straightGruntWeapons[i].killAll();
+                    straightGruntWeapons[j].killAll();
                 }
             }
             if (rotateGruntWeapons.length > 0) {
-                for (var i = 0; i < rotateGruntWeapons.length; i++) {
+                for (var k = 0; k < rotateGruntWeapons.length; k++) {
                     //rotateGruntWeapons[rotateGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
-                    rotateGruntWeapons[i].killAll();
+                    rotateGruntWeapons[k].killAll();
 
                 }
             }
@@ -436,6 +444,7 @@
             console.log('grunt bullet collide');
             player.damage(bullet.damageAmount);
             playerSprite.damage(bullet.damageAmount);
+            lifeText.render();
             player.body.x = 250;
             player.body.y = 443.5;
             playerSprite.body.x = 243;
