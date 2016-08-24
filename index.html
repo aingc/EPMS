@@ -41,6 +41,7 @@
         };
         var lifeText;
         var gameOverText;
+        var gameTimer = 0;
         const playerPhysicsStats = {
             normalVelocity: 275,
             focusVelocity: 150
@@ -50,7 +51,8 @@
             straightGruntHP: 16,
             rotateGruntHP: 24,
             gruntXvelocity: 50,
-            gruntYvelocity: 50
+            gruntYvelocity: 50,
+            gruntStraightVelocity: 100
         };
         const enemyWeapon = {
             gruntBulletSpeed: 250,
@@ -214,7 +216,7 @@
             //spawnStraightGrunt(0, 50, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
             //spawnStraightGrunt(50, 150, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot');
 
-            spawnStraightGrunt(game.world.width - 100, 50, 0, 0, 'gruntStraightRed', 'straightGruntShot');
+            //spawnStraightGrunt(game.world.width - 100, 50, 0, 0, 'gruntStraightRed', 'straightGruntShot');
             //spawnStraightGrunt(100, 50, 0, 0, 'gruntStraightBlue', 'straightGruntShot');
             //spawnAimGrunt(250, 50, 0, 0, 'gruntAimRed', 'aimGruntShot');
             //spawnAimGrunt(350, 50, 0, 0, 'gruntAimBlue', 'aimGruntShot');
@@ -274,6 +276,8 @@
                 fadeInGameOver.to({alpha: 0.2}, 1000, Phaser.Easing.Quintic.Out, false, 0, -1, true);
                 fadeInGameOver.start();
             }
+            startStageOne();
+            gameTimer++;
         }
 
         // DEBUGGING
@@ -628,11 +632,20 @@
         }*/
         // Stage 01
         function startStageOne() {
-            switch(game.time.now) {
-                case 0:
-                    //code block
+            switch(gameTimer) {
+                case 200:
+                    spawnStraightGrunt(256, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot');
                     break;
+                case 250:
+                    spawnStraightGrunt(128, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot');
+                    spawnStraightGrunt(256, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot');
+                    spawnStraightGrunt(384, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot');
+                    break;
+                case 320:
+                    spawnAimGrunt(200, 10, 0, enemyStats.gruntStraightVelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(312, 10, 0, enemyStats.gruntStraightVelocity, 'gruntAimBlue', 'aimGruntShot');
                 default:
+                    console.log(gameTimer);
                     break;
             }
         }
