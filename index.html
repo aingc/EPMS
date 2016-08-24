@@ -54,10 +54,11 @@
             gruntBulletSpeed: 250,
             gruntBulletFireRate: 500,
             gruntBulletAngleOffset: 90,
+            aimGruntBulletAngleOffset: 0,
             gruntStraightBulletSpeed: 150, //100
             gruntStraightBulletFireRate: 850, //16 is the lowest and quickest possible
             gruntRotateBulletSpeed: 150,
-            gruntRotateBulletFireRate: 16
+            gruntRotateBulletFireRate: 100 // 16 original
         };
         const weaponStats = {
             weapon1BulletSpeed: 850,
@@ -190,6 +191,7 @@
             fireButton = this.input.keyboard.addKey(Phaser.KeyCode.Z);
             focusButton = this.input.keyboard.addKey(Phaser.KeyCode.SHIFT);
 
+            // enemy testing
             //spawnAimGrunt(game.world.randomX, 100, 0, enemyStats.gruntYvelocity, 'gruntAimBlue', 'gruntShot');
             //spawnAimGrunt(game.world.randomX, 200, 0, enemyStats.gruntYvelocity, 'gruntAimRed', 'gruntShot');
             //spawnAimGrunt(game.world.randomX, 50, -(enemyStats.gruntXvelocity), enemyStats.gruntYvelocity, 'gruntAimBlue', 'gruntShot');
@@ -198,7 +200,13 @@
             //spawnRotateGrunt(game.world.randomX, 100, 0, 50, 'gruntRotate', 'gruntShot');
             //spawnStraightGrunt(0, 50, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
             //spawnStraightGrunt(50, 150, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot');
-            spawnStraightGrunt(game.world.width - 100, 50, 0, 0, 'gruntStraightRed', 'straightGruntShot');
+
+            //spawnStraightGrunt(game.world.width - 100, 50, 0, 0, 'gruntStraightRed', 'straightGruntShot');
+            //spawnStraightGrunt(100, 50, 0, 0, 'gruntStraightBlue', 'straightGruntShot');
+            //spawnAimGrunt(250, 50, 0, 0, 'gruntAimRed', 'aimGruntShot');
+            //spawnAimGrunt(350, 50, 0, 0, 'gruntAimBlue', 'aimGruntShot');
+            //spawnRotateGrunt(200, 250, 0, 0, 'gruntRotate', 'rotateGruntShot');
+
             //spawnStraightGrunt(game.world.width, 50, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
             //spawnStraightGrunt(game.world.width, 110, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
             //spawnStraightGrunt(game.world.width, 170, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
@@ -208,9 +216,8 @@
         }
 
         function update() {
-            //playerSprite.sendToBack();
-            playerHurtbox.sendToBack();
             playerSprite.sendToBack();
+            playerHurtbox.sendToBack();
             //bg.sendToBack();
             aimGrunts.callAll('bringToTop');
             straightGrunts.callAll('bringToTop');
@@ -365,6 +372,7 @@
         }
 
         function playerCollide(player, enemy) {
+            console.log('enemy collide');
             player.damage(enemy.damageAmount);
             playerSprite.damage(enemy.damageAmount);
             player.body.x = 250;
@@ -375,6 +383,24 @@
             //player.reset(game.world.width / 2, game.world.height - 150, player.health);
             console.log(player.health);
             console.log(playerSprite.health);
+            if (aimGruntWeapons.length > 0) {
+                for (var i = 0; i < aimGruntWeapons.length; i++) {
+                    aimGruntWeapons[i].killAll();
+                }
+            }
+            if (straightGruntWeapons.length > 0) {
+                for (var i = 0; i < straightGruntWeapons.length; i++) {
+                    //straightGruntWeapons[straightGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
+                    straightGruntWeapons[i].killAll();
+                }
+            }
+            if (rotateGruntWeapons.length > 0) {
+                for (var i = 0; i < rotateGruntWeapons.length; i++) {
+                    //rotateGruntWeapons[rotateGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
+                    rotateGruntWeapons[i].killAll();
+
+                }
+            }
             /*if (playerDeathSignal.callCount < playerStats.lives && !player.alive) {
                 player.revive(1);
                 playerSprite.revive(1);
@@ -407,7 +433,7 @@
         }
 
         function gruntShotCollide(player, bullet) {
-            bullet.kill();
+            console.log('grunt bullet collide');
             player.damage(bullet.damageAmount);
             playerSprite.damage(bullet.damageAmount);
             player.body.x = 250;
@@ -416,6 +442,24 @@
             playerSprite.body.y = 428;
             console.log(player.health);
             console.log(playerSprite.health);
+            if (aimGruntWeapons.length > 0) {
+                for (var i = 0; i < aimGruntWeapons.length; i++) {
+                    aimGruntWeapons[i].killAll();
+                }
+            }
+            if (straightGruntWeapons.length > 0) {
+                for (var i = 0; i < straightGruntWeapons.length; i++) {
+                    //straightGruntWeapons[straightGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
+                    straightGruntWeapons[i].killAll();
+                }
+            }
+            if (rotateGruntWeapons.length > 0) {
+                for (var i = 0; i < rotateGruntWeapons.length; i++) {
+                    //rotateGruntWeapons[rotateGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
+                    rotateGruntWeapons[i].killAll();
+
+                }
+            }
             // start gameover state here
         }
 
@@ -433,7 +477,7 @@
 
             var newWeapon = game.add.weapon(30, weaponName);
             newWeapon.bulletSpeed = enemyWeapon.gruntBulletSpeed;
-            newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
+            newWeapon.bulletAngleOffset = enemyWeapon.aimGruntBulletAngleOffset;
             newWeapon.fireRate = enemyWeapon.gruntBulletFireRate;
             newWeapon.bullets.forEach(function(bullet) {
                 bullet.damageAmount = 1;
