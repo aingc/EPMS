@@ -40,6 +40,7 @@
             bomb: 2
         };
         var lifeText;
+        var gameOverText;
         const playerPhysicsStats = {
             normalVelocity: 275,
             focusVelocity: 150
@@ -192,11 +193,16 @@
             fireButton = this.input.keyboard.addKey(Phaser.KeyCode.Z);
             focusButton = this.input.keyboard.addKey(Phaser.KeyCode.SHIFT);
 
-            // Lives Text
+            // Game Text
+                // Lives
             lifeText = game.add.text(10, game.world.height - 30, 'Lives: ' + playerHurtbox.health, { font: '20px Arial', fill: '#FFF' });
             lifeText.render = function() {
                 lifeText.text = 'Lives: ' + Math.max(playerHurtbox.health, 0);
             };
+                // Game Over
+            gameOverText = game.add.text(game.world.centerX, game.world.centerY, 'GAME OVER\nTo restart, refresh the browser', { font: '30px Arial', fill: '#fff'});
+            gameOverText.anchor.setTo(0.5);
+            gameOverText.visible = false;
 
             // enemy testing
             //spawnAimGrunt(game.world.randomX, 100, 0, enemyStats.gruntYvelocity, 'gruntAimBlue', 'gruntShot');
@@ -262,6 +268,12 @@
 
             // Scroll the bg
             //bg.tilePosition.y += 2;
+            if (!playerHurtbox.alive && gameOverText.visible === false) {
+                gameOverText.visible = true;
+                var fadeInGameOver = game.add.tween(gameOverText);
+                fadeInGameOver.to({alpha: 0.2}, 1000, Phaser.Easing.Quintic.Out, false, 0, -1, true);
+                fadeInGameOver.start();
+            }
         }
 
         // DEBUGGING
