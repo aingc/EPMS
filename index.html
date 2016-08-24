@@ -31,6 +31,7 @@
             game.load.image('singlePrimary', './assets/Player/playerShotA.png');
             game.load.image('doublePrimary', './assets/Player/playerShotB.png');
             game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
+            game.load.spritesheet('gruntDeathExplode', './assets/Enemy/gruntDeathExplosion2.png', 64, 65);
         }
 
         var playerStats = {
@@ -94,6 +95,7 @@
         var aimGrunts;
         var straightGrunts;
         var rotateGrunts;
+        var gruntDeaths;
 
         // Enemy Weapons
         var aimGruntWeapons = [];
@@ -102,6 +104,9 @@
         var rotateGruntWeaponDIS = [];
         var straightGruntWeapons = [];
         var straightGruntWeaponDIS = [];
+        var aimGruntExplosionDIS = [];
+        var rotateGruntExplosionDIS = [];
+        var straightGruntExplosionDIS = [];
 
 
         // weapon.Bullets is a group
@@ -182,6 +187,16 @@
             gameOverText.anchor.setTo(0.5);
             gameOverText.visible = false;
 
+            // Enemy Death
+            gruntDeaths = game.add.group();
+            gruntDeaths.enableBody = true;
+            gruntDeaths.physicsBodyType = Phaser.Physics.ARCADE;
+            gruntDeaths.createMultiple(30, 'gruntDeathExplode');
+            gruntDeaths.setAll('anchor.x', 0.5);
+            gruntDeaths.setAll('anchor.y', 0.5);
+            gruntDeaths.forEach(function(explode) {
+               explode.animations.add('gruntDeathExplode');
+            });
         }
 
         function update() {
@@ -397,6 +412,13 @@
             if (bullet !== undefined) {
                 bullet.kill();
                 sprite.damage(bullet.damageAmount);
+                if (sprite.health <= 0) {
+                    var spriteDeathAnim = gruntDeaths.getFirstExists(false);
+                    spriteDeathAnim.reset(sprite.body.x + sprite.body.halfWidth, sprite.body.y + sprite.body.halfHeight);
+                    spriteDeathAnim.body.velocity.y = sprite.body.velocity.y;
+                    spriteDeathAnim.alpha = 0.7;
+                    spriteDeathAnim.play('gruntDeathExplode', 30, false, true);
+                }
             }
         }
 
