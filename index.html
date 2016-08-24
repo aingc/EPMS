@@ -23,7 +23,7 @@
             game.load.image('aimGruntShot', './assets/Enemy/enemyBullets/aimGruntShot.png');
             game.load.image('straightGruntShot', './assets/Enemy/enemyBullets/straightGruntShot.png');
             game.load.image('rotateGruntShot', './assets/Enemy/enemyBullets/rotateGruntShot.png');
-            game.load.image('gruntRotate', './assets/Enemy/gruntRotate.png')
+            game.load.image('gruntRotate', './assets/Enemy/gruntRotate.png');
             game.load.image('gruntStraightRed', './assets/Enemy/gruntStraightRed.png');
             game.load.image('gruntStraightBlue', './assets/Enemy/gruntStraightBlue.png');
             game.load.image('gruntAimRed', './assets/Enemy/gruntAimRed.png');
@@ -178,9 +178,9 @@
 
             // Game Text
                 // Lives
-            lifeText = game.add.text(10, game.world.height - 30, 'Lives: ' + playerHurtbox.health, { font: '20px Arial', fill: '#FFF' });
+            lifeText = game.add.text(10, game.world.height - 30, 'Lives: ' + playerSprite.health, { font: '20px Arial', fill: '#00FF00' });
             lifeText.render = function() {
-                lifeText.text = 'Lives: ' + Math.max(playerHurtbox.health, 0);
+                lifeText.text = 'Lives: ' + Math.max(playerSprite.health, 0);
             };
                 // Game Over
             gameOverText = game.add.text(game.world.centerX, game.world.centerY, 'GAME OVER\nTo restart, refresh the browser', { font: '30px Arial', fill: '#fff'});
@@ -197,6 +197,8 @@
             gruntDeaths.forEach(function(explode) {
                explode.animations.add('gruntDeathExplode');
             });
+
+            spawnStraightGrunt(400, 100, 0, 0, 'gruntStraightRed', 'straightGruntShot', false);
         }
 
         function update() {
@@ -247,7 +249,7 @@
                 fadeInGameOver.to({alpha: 0.2}, 1000, Phaser.Easing.Quintic.Out, false, 0, -1, true);
                 fadeInGameOver.start();
             }
-            startStageOne();
+            //startStageOne();
             gameTimer++;
         }
 
@@ -256,7 +258,7 @@
             game.debug.body(playerHurtbox);
             aimGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             straightGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
-            rotateGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0,4)');
+            rotateGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             weapon1.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
             weapon2.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
         }
@@ -416,7 +418,7 @@
                     var spriteDeathAnim = gruntDeaths.getFirstExists(false);
                     spriteDeathAnim.reset(sprite.body.x + sprite.body.halfWidth, sprite.body.y + sprite.body.halfHeight);
                     spriteDeathAnim.body.velocity.y = sprite.body.velocity.y;
-                    spriteDeathAnim.alpha = 0.7;
+                    spriteDeathAnim.alpha = 1;
                     spriteDeathAnim.play('gruntDeathExplode', 30, false, true);
                 }
             }
@@ -548,6 +550,8 @@
             }
             newWeapon.bullets.forEach(function(bullet) {
                 bullet.damageAmount = 1;
+                bullet.body.setCircle(13, 2.5, 4);
+                //bullet.body.setCircle(14, 1.5, 3);
             });
             newWeapon.trackSprite(newGrunt, 0, 0);
             straightGruntWeapons.push(newWeapon);
