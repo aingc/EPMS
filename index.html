@@ -52,7 +52,12 @@
             rotateGruntHP: 24,
             gruntXvelocity: 50,
             gruntYvelocity: 50,
-            gruntStraightVelocity: 100
+            gruntStraightVelocity: 100,
+            movingGruntStraightXVelocity: 75,
+            movingGruntRotateXVelocity: 150,
+            movingGruntRotateYVelocity: 200,
+            reverseGruntRotateXVelocity: 300,
+            reverseGruntRotateYVelocity: 500
         };
         const enemyWeapon = {
             gruntBulletSpeed: 250,
@@ -61,8 +66,12 @@
             aimGruntBulletAngleOffset: 0,
             gruntStraightBulletSpeed: 150, //100
             gruntStraightBulletFireRate: 850, //16 is the lowest and quickest possible
+            movingGruntStraightBulletSpeed: 150,
+            movingGruntStraightBulletFireRate: 600,
             gruntRotateBulletSpeed: 150,
-            gruntRotateBulletFireRate: 100 // 16 original
+            gruntRotateBulletFireRate: 50,
+            gruntExplosiveRotateBulletSpeed: 100,
+            gruntExplosiveRotateFireRate: 16
         };
         const weaponStats = {
             weapon1BulletSpeed: 850,
@@ -72,13 +81,13 @@
             weapon2Damage: 6
         };
         var rotateGruntTimers = [];
+        var counterClockwiseShootID = [];
 
         var bg;
         var weapon1;
         var weapon2;
         var playerHurtbox;
         var playerSprite;
-        var playerDeathSignal;
         var cursors;
         var fireButton;
         var focusButton;
@@ -134,39 +143,6 @@
             rotateGrunts = game.add.group();
             rotateGrunts.enableBody = true;
             rotateGrunts.physicsBodyType = Phaser.Physics.ARCADE;
-            /*for (var i = 0; i < 5; i++) {
-                var g = grunts.create(game.world.randomX, game.world.randomY, 'enemyTest');
-                g.body.immovable = true;
-            }
-            grunts.setAll('anchor.x', 0.5);
-            grunts.setAll('anchor.y', 0.5);
-            grunts.setAll('outOfBoundsKill', true);
-            grunts.setAll('checkWorldBounds', true);
-            grunts.setAll('health', enemyStats.aimGruntHP);
-
-            grunts.forEach(function(enemy) {
-                enemy.damageAmount = 10;
-            });*/
-
-            // Enemy Bullets
-            /*gruntBullets = game.add.weapon(10, 'gruntShot');
-            gruntBullets.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-            gruntBullets.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
-            gruntBullets.bulletSpeed = enemyWeapon.gruntBulletSpeed;
-            gruntBullets.fireRate = enemyWeapon.gruntBulletFireRate;
-            gruntBullets.createBullets(2, 'gruntShot', grunts);
-            gruntBullets.bullets.forEach(function(bullet) {
-                bullet.damageAmount = 1;
-            });*/
-            /*gruntBullets = game.add.group();
-            gruntBullets.enableBody = true;
-            gruntBullets.physicsBodyType = Phaser.Physics.ARCADE;
-            gruntBullets.createMultiple(100, 'gruntShot');
-            gruntBullets.setAll('anchor.x', 0.5);
-            gruntBullets.setAll('anchor.y', 0.5);
-            gruntBullets.setAll('outOfBoundsKill', true);
-            gruntBullets.setAll('checkWorldBounds', true);*/
-
 
             // Player
             playerHurtbox = this.add.sprite((game.world.width/2), game.world.height - 150, 'sanaeHurtbox');
@@ -205,28 +181,6 @@
             gameOverText = game.add.text(game.world.centerX, game.world.centerY, 'GAME OVER\nTo restart, refresh the browser', { font: '30px Arial', fill: '#fff'});
             gameOverText.anchor.setTo(0.5);
             gameOverText.visible = false;
-
-            // enemy testing
-            //spawnAimGrunt(game.world.randomX, 100, 0, enemyStats.gruntYvelocity, 'gruntAimBlue', 'gruntShot');
-            //spawnAimGrunt(game.world.randomX, 200, 0, enemyStats.gruntYvelocity, 'gruntAimRed', 'gruntShot');
-            //spawnAimGrunt(game.world.randomX, 50, -(enemyStats.gruntXvelocity), enemyStats.gruntYvelocity, 'gruntAimBlue', 'gruntShot');
-            //spawnAimGrunt(game.world.randomX, 50, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntAimRed', 'gruntShot');
-            //spawnRotateGrunt(game.world.randomX, 100, 0, 50, 'gruntRotate', 'gruntShot');
-            //spawnRotateGrunt(game.world.randomX, 100, 0, 50, 'gruntRotate', 'gruntShot');
-            //spawnStraightGrunt(0, 50, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
-            //spawnStraightGrunt(50, 150, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot');
-
-            //spawnStraightGrunt(game.world.width - 100, 50, 0, 0, 'gruntStraightRed', 'straightGruntShot');
-            //spawnStraightGrunt(100, 50, 0, 0, 'gruntStraightBlue', 'straightGruntShot');
-            //spawnAimGrunt(250, 50, 0, 0, 'gruntAimRed', 'aimGruntShot');
-            //spawnAimGrunt(350, 50, 0, 0, 'gruntAimBlue', 'aimGruntShot');
-            //spawnRotateGrunt(200, 250, 0, 0, 'gruntRotate', 'rotateGruntShot');
-
-            //spawnStraightGrunt(game.world.width, 50, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
-            //spawnStraightGrunt(game.world.width, 110, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
-            //spawnStraightGrunt(game.world.width, 170, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
-            //spawnStraightGrunt(game.world.width, 230, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot');
-            //spawnStraightGrunt(game.world.width, 150, -enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot');
 
         }
 
@@ -515,7 +469,7 @@
         }
 
         // perfect now
-        function spawnRotateGrunt(x, y, velocityX, velocityY, spriteName, weaponName) {
+        function spawnRotateGrunt(x, y, velocityX, velocityY, spriteName, weaponName, clockwise, explosive) {
             var newGrunt = rotateGrunts.create(x, y, spriteName);
             newGrunt.anchor.setTo(0.5);
             newGrunt.outOfBoundsKill = true;
@@ -527,9 +481,16 @@
             newGrunt.body.velocity.y = velocityY;
 
             var newWeapon = game.add.weapon(80, weaponName);
-            newWeapon.bulletSpeed = enemyWeapon.gruntRotateBulletSpeed;
             newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
-            newWeapon.fireRate = enemyWeapon.gruntRotateBulletFireRate;
+            if (explosive) {
+                newGrunt.setHealth(4);
+                newWeapon.bulletSpeed = enemyWeapon.gruntExplosiveRotateBulletSpeed;
+                newWeapon.fireRate = enemyWeapon.gruntExplosiveRotateFireRate;
+            }
+            else {
+                newWeapon.bulletSpeed = enemyWeapon.gruntRotateBulletSpeed;
+                newWeapon.fireRate = enemyWeapon.gruntRotateBulletFireRate;
+            }
             newWeapon.bullets.forEach(function(bullet) {
                 bullet.damageAmount = 1;
             });
@@ -537,9 +498,12 @@
             rotateGruntWeapons.push(newWeapon);
             rotateGruntWeaponDIS.push(newGrunt.events.onKilled.add(checkGruntKill, this, this, rotateGrunts));
             rotateGruntTimers.push(0);
+            if (clockwise) {
+                counterClockwiseShootID.push(rotateGruntWeapons.length - 1);
+            }
         }
 
-        function spawnStraightGrunt(x, y, velocityX, velocityY, spriteName, weaponName) {
+        function spawnStraightGrunt(x, y, velocityX, velocityY, spriteName, weaponName, moving) {
             var newGrunt = straightGrunts.create(x, y, spriteName);
             newGrunt.anchor.setTo(0.5);
             newGrunt.outOfBoundsKill = true;
@@ -551,9 +515,15 @@
             newGrunt.body.velocity.y = velocityY;
 
             var newWeapon = game.add.weapon(30, weaponName);
-            newWeapon.bulletSpeed = enemyWeapon.gruntStraightBulletSpeed;
             newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
-            newWeapon.fireRate = enemyWeapon.gruntStraightBulletFireRate;
+            if (moving) {
+                newWeapon.bulletSpeed = enemyWeapon.movingGruntStraightBulletSpeed;
+                newWeapon.fireRate = enemyWeapon.movingGruntStraightBulletFireRate;
+            }
+            else {
+                newWeapon.bulletSpeed = enemyWeapon.gruntStraightBulletSpeed;
+                newWeapon.fireRate = enemyWeapon.gruntStraightBulletFireRate;
+            }
             newWeapon.bullets.forEach(function(bullet) {
                 bullet.damageAmount = 1;
             });
@@ -604,7 +574,19 @@
                         if (game.time.now > rotateGruntTimers[i]) {
                             gruntWeaponArray[i].fire();
                             rotateGruntTimers[i] = game.time.now + gruntWeaponArray[i].fireRate;
-                            gruntWeaponArray[i].fireAngle += 25;
+                            if (counterClockwiseShootID.length > 0) {
+                                for (var j = 0; j < counterClockwiseShootID.length; j++) {
+                                    if (i === counterClockwiseShootID[j]) {
+                                        gruntWeaponArray[i].fireAngle -= 25;
+                                    }
+                                    else {
+                                        gruntWeaponArray[i].fireAngle += 25;
+                                    }
+                                }
+                            }
+                            else {
+                                gruntWeaponArray[i].fireAngle += 25;
+                            }
                         }
                     }
                 }
@@ -636,16 +618,182 @@
         function startStageOne() {
             switch(gameTimer) {
                 case 200:
-                    spawnStraightGrunt(256, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot');
+                    spawnStraightGrunt(256, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot', false);
                     break;
                 case 250:
-                    spawnStraightGrunt(128, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot');
-                    spawnStraightGrunt(256, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot');
-                    spawnStraightGrunt(384, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot');
+                    spawnStraightGrunt(128, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot', false);
+                    spawnStraightGrunt(256, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot', false);
+                    spawnStraightGrunt(384, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot', false);
                     break;
                 case 320:
                     spawnAimGrunt(200, 10, 0, enemyStats.gruntStraightVelocity, 'gruntAimBlue', 'aimGruntShot');
                     spawnAimGrunt(312, 10, 0, enemyStats.gruntStraightVelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 550:
+                    spawnStraightGrunt(500, 10, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 600:
+                    spawnStraightGrunt(500, 10, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 620:
+                    spawnStraightGrunt(10, 10, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    break;
+                case 650:
+                    spawnStraightGrunt(500, 10, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 670:
+                    spawnStraightGrunt(10, 10, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    break;
+                case 685:
+                    spawnAimGrunt(128, 10, 0, enemyStats.gruntStraightVelocity, 'gruntAimRed', 'aimGruntShot');
+                    spawnAimGrunt(384, 10, 0, enemyStats.gruntStraightVelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 700:
+                    spawnStraightGrunt(500, 10, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 720:
+                    spawnStraightGrunt(10, 10, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    break;
+                case 750:
+                    spawnStraightGrunt(500, 10, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 770:
+                    spawnStraightGrunt(10, 10, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    break;
+                case 820:
+                    spawnStraightGrunt(10, 10, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    break;
+                case 870:
+                    spawnRotateGrunt(50, 10, 0, enemyStats.gruntStraightVelocity, 'gruntRotate', 'rotateGruntShot', true, false);
+                    break;
+                case 950:
+                    spawnRotateGrunt(462, 10, 0, enemyStats.gruntStraightVelocity, 'gruntRotate', 'rotateGruntShot', false, false);
+                    break;
+                case 1150:
+                    spawnRotateGrunt(500, 100, -enemyStats.movingGruntStraightXVelocity, 0, 'gruntRotate', 'rotateGruntShot', true, false);
+                    break;
+                case 1170:
+                    spawnRotateGrunt(500, 100, -enemyStats.movingGruntStraightXVelocity, 0, 'gruntRotate', 'rotateGruntShot', true, false);
+                    break;
+                case 1210:
+                    spawnRotateGrunt(500, 100, -enemyStats.movingGruntStraightXVelocity, 0, 'gruntRotate', 'rotateGruntShot', true, false);
+                    break;
+                case 1230:
+                    spawnRotateGrunt(500, 100, -enemyStats.movingGruntStraightXVelocity, 0, 'gruntRotate', 'rotateGruntShot', true, false);
+                    break;
+                case 1500:
+                    spawnRotateGrunt(480, 10, 0, 500, 'gruntRotate', 'rotateGruntShot', true, true);
+                    spawnRotateGrunt(32, 10, 0, 500, 'gruntRotate', 'rotateGruntShot', false, true);
+                    break;
+                case 1600:
+                    spawnRotateGrunt(448, 10, 0, 600, 'gruntRotate', 'rotateGruntShot', true, true);
+                    spawnRotateGrunt(64, 10, 0, 600, 'gruntRotate', 'rotateGruntShot', false, true);
+                    break;
+                case 1700:
+                    spawnRotateGrunt(416, 10, 0, 700, 'gruntRotate', 'rotateGruntShot', true, true);
+                    spawnRotateGrunt(96, 10, 0, 700, 'gruntRotate', 'rotateGruntShot', false, true);
+                    break;
+                case 1800:
+                    spawnRotateGrunt(384, 10, 0, 800, 'gruntRotate', 'rotateGruntShot', true, true);
+                    spawnRotateGrunt(128, 10, 0, 800, 'gruntRotate', 'rotateGruntShot', false, true);
+                    break;
+                case 1900:
+                    spawnRotateGrunt(224, 10, 0, 800, 'gruntRotate', 'rotateGruntShot', false, true);
+                    spawnRotateGrunt(288, 10, 0, 800, 'gruntRotate', 'rotateGruntShot', true, true);
+                    break;
+                case 2150:
+                    spawnAimGrunt(500, 40, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(500, 120, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 2300:
+                    spawnAimGrunt(500, 40, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(500, 120, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 2450:
+                    spawnAimGrunt(500, 40, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(500, 120, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 2600:
+                    spawnAimGrunt(500, 40, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(500, 120, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 2750:
+                    spawnAimGrunt(500, 40, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(500, 120, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 2800:
+                    spawnAimGrunt(10, 40, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(10, 120, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 2900:
+                    spawnAimGrunt(10, 40, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(10, 120, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 3000:
+                    spawnAimGrunt(10, 40, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(10, 120, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 3100:
+                    spawnAimGrunt(10, 40, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(10, 120, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 3350:
+                    spawnRotateGrunt(500, 590, -enemyStats.reverseGruntRotateXVelocity, -enemyStats.reverseGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', true, false);
+                    spawnRotateGrunt(10, 590, enemyStats.reverseGruntRotateXVelocity, -enemyStats.reverseGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', false, false);
+                    break;
+                case 3550:
+                    spawnRotateGrunt(500, 10, -enemyStats.reverseGruntRotateXVelocity, enemyStats.reverseGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', true, false);
+                    spawnRotateGrunt(10, 10, enemyStats.reverseGruntRotateXVelocity, enemyStats.reverseGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', false, false);
+                    break;
+                case 3750:
+                    spawnRotateGrunt(500, 590, -enemyStats.reverseGruntRotateXVelocity, -enemyStats.reverseGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', true, false);
+                    spawnRotateGrunt(10, 590, enemyStats.reverseGruntRotateXVelocity, -enemyStats.reverseGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', false, false);
+                    spawnStraightGrunt(10, 10, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 10, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    break;
+                case 4050:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4100:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4150:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4200:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4250:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4300:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4350:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    spawnRotateGrunt(128, 25, 0, enemyStats.movingGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', true, true);
+                    break;
+                case 4400:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4450:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4650:
+                    spawnRotateGrunt(384, 25, 0, enemyStats.movingGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', false, true);
+                    break;
+                case 4750:
+                    //tween fade into black and then out to new background
+                    break;
                 default:
                     console.log(gameTimer);
                     break;
