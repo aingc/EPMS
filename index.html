@@ -98,7 +98,7 @@
         // weapon.Bullets is a group
         function create() {
             // Scrolling Background
-            //bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
+            bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
 
             // ___WEAPONS___
 
@@ -233,7 +233,7 @@
         function update() {
             playerSprite.sendToBack();
             playerHurtbox.sendToBack();
-            //bg.sendToBack();
+            bg.sendToBack();
             aimGrunts.callAll('bringToTop');
             straightGrunts.callAll('bringToTop');
             rotateGrunts.callAll('bringToTop');
@@ -269,7 +269,9 @@
             gruntRotateFire(rotateGrunts, rotateGruntWeapons, rotateGruntWeaponDIS);
 
             // Scroll the bg
-            //bg.tilePosition.y += 2;
+            bg.tilePosition.y += 2;
+
+            // Check game over
             if (!playerHurtbox.alive && gameOverText.visible === false) {
                 gameOverText.visible = true;
                 var fadeInGameOver = game.add.tween(gameOverText);
