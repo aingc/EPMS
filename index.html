@@ -50,6 +50,10 @@
         var lifeText;
         var powerText;
         var gameOverText;
+        var pocLineText;
+        var pocLine;
+        var fadeInPOCtext;
+        var fadeInPOCline;
         var gameTimer = 0;
         const playerPhysicsStats = {
             normalVelocity: 275,
@@ -83,11 +87,11 @@
             gruntExplosiveRotateFireRate: 16
         };
         const weaponStats = {
-            weapon1BulletSpeed: 850,
-            weapon1BulletFireRate: 90,
-            weapon1BulletAngleOffSet: 90,
-            weapon1Damage: 4,
-            weapon2Damage: 6
+            singleShotBulletSpeed: 850,
+            singleShotBulletFireRate: 90,
+            singleShotBulletAngleOffSet: 90,
+            singleShotDamage: 4,
+            doubleShotDamage: 6
         };
         var rotateGruntTimers = [];
         var counterClockwiseShootID = [];
@@ -98,8 +102,8 @@
         var playerDeathSFX;
         var smallP;
         var largeP;
-        var weapon1;
-        var weapon2;
+        var singleShot;
+        var doubleShot;
         var playerHurtbox;
         var playerSprite;
         var cursors;
@@ -179,22 +183,22 @@
             // ___WEAPONS___
 
             // Single Shot
-            weapon1 = game.add.weapon(30, 'singlePrimary');
-            weapon1.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-            weapon1.bulletAngleOffset = weaponStats.weapon1BulletAngleOffSet;
-            weapon1.bulletSpeed = weaponStats.weapon1BulletSpeed;
-            weapon1.fireRate = weaponStats.weapon1BulletFireRate;
-            weapon1.bullets.forEach(function(bullet) {
-                bullet.damageAmount = weaponStats.weapon1Damage;
+            singleShot = game.add.weapon(30, 'singlePrimary');
+            singleShot.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            singleShot.bulletAngleOffset = weaponStats.singleShotBulletAngleOffSet;
+            singleShot.bulletSpeed = weaponStats.singleShotBulletSpeed;
+            singleShot.fireRate = weaponStats.singleShotBulletFireRate;
+            singleShot.bullets.forEach(function(bullet) {
+                bullet.damageAmount = weaponStats.singleShotDamage;
             });
 
             // Double Shot
-            weapon2 = game.add.weapon(30, 'doublePrimary');
-            weapon2.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-            weapon2.bulletAngleOffset = 90;
-            weapon2.bulletSpeed = 850;
-            weapon2.fireRate = 90;
-            weapon2.bullets.forEach(function(bullet) {
+            doubleShot = game.add.weapon(30, 'doublePrimary');
+            doubleShot.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            doubleShot.bulletAngleOffset = 90;
+            doubleShot.bulletSpeed = 850;
+            doubleShot.fireRate = 90;
+            doubleShot.bullets.forEach(function(bullet) {
                bullet.damageAmount = 5;
             });
 
@@ -230,8 +234,8 @@
 
             // Weapon Tracking
             // -- Weapon on player
-            weapon1.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
-            weapon2.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
+            singleShot.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
+            doubleShot.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
 
             // Setting Controls
             cursors = this.input.keyboard.createCursorKeys();
@@ -252,6 +256,15 @@
             gameOverText = game.add.text(game.world.centerX, game.world.centerY, 'GAME OVER\nTo restart, refresh the browser', { font: '30px Arial', fill: '#fff'});
             gameOverText.anchor.setTo(0.5);
             gameOverText.visible = false;
+
+                // POC Line Text
+            pocLineText = game.add.text(game.world.centerX, game.world.centerY/2 - 10, 'Point of Collection', {font: '25px Arial', fill: '#00FF00'});
+            pocLineText.anchor.setTo(0.5);
+            pocLineText.visible = false;
+                // POC Line
+            pocLine = game.add.text(0, game.world.centerY/2, '____________________________________________________________________________________________', { font: '20px Arial', fill: '#FF0000'});
+            pocLine.anchor.setTo(0.5);
+            pocLine.visible = false;
 
                 // Point of Collection Line
             // implement here
@@ -287,16 +300,18 @@
             // Collision Checking
                 // aimGrunts
             game.physics.arcade.overlap(playerHurtbox, aimGrunts, playerCollide, null, this);
-            game.physics.arcade.overlap(weapon1.bullets, aimGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(weapon2.bullets, aimGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(singleShot.bullets, aimGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(doubleShot.bullets, aimGrunts, bulletCollide, null, this);
 
                 // straightGrunts
             game.physics.arcade.overlap(playerHurtbox, straightGrunts, playerCollide, null, this);
-            game.physics.arcade.overlap(weapon1.bullets, straightGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(singleShot.bullets, straightGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(doubleShot.bullets, straightGrunts, bulletCollide, null, this);
 
                 // rotateGrunts
             game.physics.arcade.overlap(playerHurtbox, rotateGrunts, playerCollide, null, this);
-            game.physics.arcade.overlap(weapon1.bullets, rotateGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(singleShot.bullets, rotateGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(doubleShot.bullets, rotateGrunts, bulletCollide, null, this);
 
             // Check Enemy Bullet Collisions/Overlap
             checkGruntBulletOverlap(aimGruntWeapons);
@@ -324,6 +339,19 @@
                 fadeInGameOver.to({alpha: 0.2}, 1000, Phaser.Easing.Quintic.Out, false, 0, -1, true);
                 fadeInGameOver.start();
             }
+
+            // Display POC Line at the beginning
+            if (playerHurtbox.alive && pocLineText.visible === false && pocLine.visible === false && gameTimer <= 250) {
+                pocLineText.visible = true;
+                pocLine.visible = true;
+                fadeInPOCtext = game.add.tween(pocLineText);
+                fadeInPOCline = game.add.tween(pocLine);
+                fadeInPOCtext.to({alpha: 0}, 500, Phaser.Easing.Quintic.Out, false, 0, 5, true);
+                fadeInPOCline.to({alpha: 0.2}, 500, Phaser.Easing.Quintic.Out, false, 0, 5, true);
+                fadeInPOCtext.start();
+                fadeInPOCline.start();
+            }
+            checkPOClineBreach();
             startStageOne();
             if (bgm.volume <= 0) {
                 bgm.stop();
@@ -338,8 +366,8 @@
             aimGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             straightGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             rotateGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
-            weapon1.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
-            weapon2.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
+            singleShot.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
+            doubleShot.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
         }
 
         function renderGroup(child, strColor) {
@@ -441,9 +469,26 @@
             }
 
             // Check amount of P and then fire appropriate weapon
-            if (playerHurtbox.alive && fireButton.isDown) {
-                weapon1.fire();
+            if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 0 && playerStats.power < 250) {
+                singleShot.fire();
+                // Update weapon text: 'SINGLE SHOT'
             }
+            else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 250 && playerStats.power < 500) {
+                doubleShot.fire();
+                // Update weapon text: 'DOUBLE SHOT'
+            }
+            else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 500 && playerStats.power < 750) {
+                singleShot.fire();
+                doubleShot.fire();
+                // Update weapon text: 'TRIPLE SHOT'
+            }
+            else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 750) {
+                // Update weapon text: 'MAX POWER'
+                singleShot.fire();
+                doubleShot.fire();
+            }
+
+            // Check POC Line
         }
 
         function burstSmallPower(spriteX, spriteY, spriteYvel, amount) {
@@ -451,7 +496,7 @@
             smallP.y = spriteY;
             smallP.setYSpeed(spriteYvel);
             smallP.setRotation(0, 0);
-            smallP.start(true, 0, null, amount);
+            smallP.start(true, 2500, null, amount);
         }
 
         function burstLargePower(spriteX, spriteY, spriteYvel, amount) {
@@ -462,6 +507,17 @@
             largeP.start(true, 0, null, amount);
         }
 
+        // check POC Line Breach
+        function checkPOClineBreach() {
+            if (playerHurtbox.alive && playerSprite.body.y <= game.world.centerY/2) {
+                smallP.forEachAlive(function(smallPellet) {
+                    game.physics.arcade.moveToObject(smallPellet, playerSprite, 400);
+                });
+                largeP.forEachAlive(function(largePellet) {
+                    game.physics.arcade.moveToObject(largePellet, playerSprite, 400);
+                });
+            }
+        }
         function playerPowerUp(player, p) {
             console.log('powered up');
             console.log(p.key);
@@ -756,6 +812,10 @@
                     spawnStraightGrunt(128, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot', false);
                     spawnStraightGrunt(256, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot', false);
                     spawnStraightGrunt(384, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot', false);
+                    fadeInPOCtext.stop();
+                    fadeInPOCline.stop();
+                    pocLineText.visible = false;
+                    pocLine.visible = false;
                     break;
                 case 320:
                     spawnAimGrunt(200, 10, 0, enemyStats.gruntStraightVelocity, 'gruntAimBlue', 'aimGruntShot');
