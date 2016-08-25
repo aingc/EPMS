@@ -32,6 +32,10 @@
             game.load.image('doublePrimary', './assets/Player/playerShotB.png');
             game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
             game.load.spritesheet('gruntDeathExplode', './assets/Enemy/gruntDeathExplosion2.png', 64, 65);
+            game.load.audio('enemyDeath', './assets/Audio/SFX/enemyDeath.wav');
+            game.load.audio('playerDeath', './assets/Audio/SFX/playerExplosion.wav');
+            game.load.audio('bomb', './assets/Audio/SFX/SpecialSS.wav');
+            game.load.audio('stage01BGM', './assets/Audio/BGM/EndOfSpring.mp3');
         }
 
         var playerStats = {
@@ -85,6 +89,9 @@
         var counterClockwiseShootID = [];
 
         var bg;
+        var bgm;
+        var enemyDeathSFX;
+        var playerDeathSFX;
         var weapon1;
         var weapon2;
         var playerHurtbox;
@@ -113,6 +120,14 @@
         function create() {
             // Scrolling Background
             bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
+
+            // Music and SFX
+            bgm = game.add.audio('stage01BGM');
+            bgm.play();
+            enemyDeathSFX = game.add.audio('enemyDeath');
+            enemyDeathSFX.volume = 0.8;
+            playerDeathSFX = game.add.audio('playerDeath');
+            playerDeathSFX.volume = 0.8;
 
             // ___WEAPONS___
 
@@ -198,7 +213,7 @@
                explode.animations.add('gruntDeathExplode');
             });
 
-            spawnStraightGrunt(400, 100, 0, 0, 'gruntStraightRed', 'straightGruntShot', false);
+            //spawnStraightGrunt(400, 100, 0, 0, 'gruntStraightRed', 'straightGruntShot', false);
         }
 
         function update() {
@@ -249,7 +264,11 @@
                 fadeInGameOver.to({alpha: 0.2}, 1000, Phaser.Easing.Quintic.Out, false, 0, -1, true);
                 fadeInGameOver.start();
             }
-            //startStageOne();
+            startStageOne();
+            if (bgm.volume <= 0) {
+                bgm.stop();
+                console.log('bgm stopped');
+            }
             gameTimer++;
         }
 
@@ -372,6 +391,7 @@
             player.damage(enemy.damageAmount);
             playerSprite.damage(enemy.damageAmount);
             lifeText.render();
+            playerDeathSFX.play();
             player.body.x = 250;
             player.body.y = 443.5;
             playerSprite.body.x = 243;
@@ -398,15 +418,6 @@
 
                 }
             }
-            /*if (playerDeathSignal.callCount < playerStats.lives && !player.alive) {
-                player.revive(1);
-                playerSprite.revive(1);
-                playerSprite.sendToBack();
-                player.sendToBack();
-                playerSprite.moveUp();
-                player.moveUp();
-            }*/
-            // game over screen here
         }
 
         // when sprite dies, its bullets linger and will still deal damage
@@ -420,6 +431,7 @@
                     spriteDeathAnim.body.velocity.y = sprite.body.velocity.y;
                     spriteDeathAnim.alpha = 1;
                     spriteDeathAnim.play('gruntDeathExplode', 30, false, true);
+                    enemyDeathSFX.play();
                 }
             }
         }
@@ -441,6 +453,7 @@
             player.damage(bullet.damageAmount);
             playerSprite.damage(bullet.damageAmount);
             lifeText.render();
+            playerDeathSFX.play();
             player.body.x = 250;
             player.body.y = 443.5;
             playerSprite.body.x = 243;
@@ -818,6 +831,8 @@
                     spawnRotateGrunt(384, 25, 0, enemyStats.movingGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', false, true);
                     break;
                 case 4750:
+                    //bgm fade
+                    bgm.fadeOut(7000);
                     //tween fade into black and then out to new background
                     break;
                 default:
