@@ -20,28 +20,67 @@
             game.load.image('stage01BG', './assets/Background/stage01blue.png');
             game.load.image('sanaeHurtbox', './assets/Player/playerHurtbox.png');
             game.load.image('sanae', './assets/Player/playerStand.png');
-            game.load.image('gruntShot', './assets/Enemy/enemyBullets/gruntFairyShot.png');
-            game.load.image('gruntRed', './assets/Enemy/gruntFairyRed.png');
-            game.load.image('gruntBlue', './assets/Enemy/gruntFairyBlue.png');
+            game.load.image('aimGruntShot', './assets/Enemy/enemyBullets/aimGruntShot.png');
+            game.load.image('straightGruntShot', './assets/Enemy/enemyBullets/straightGruntShot.png');
+            game.load.image('rotateGruntShot', './assets/Enemy/enemyBullets/rotateGruntShot.png');
+            game.load.image('gruntRotate', './assets/Enemy/gruntRotate.png');
+            game.load.image('gruntStraightRed', './assets/Enemy/gruntStraightRed.png');
+            game.load.image('gruntStraightBlue', './assets/Enemy/gruntStraightBlue.png');
+            game.load.image('gruntAimRed', './assets/Enemy/gruntAimRed.png');
+            game.load.image('gruntAimBlue', './assets/Enemy/gruntAimBlue.png');
             game.load.image('singlePrimary', './assets/Player/playerShotA.png');
             game.load.image('doublePrimary', './assets/Player/playerShotB.png');
             game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
+            game.load.image('smallP', './assets/Player/PowerSmall.png');
+            game.load.image('largeP', './assets/Player/PowerLarge.png');
+            game.load.spritesheet('gruntDeathExplode', './assets/Enemy/gruntDeathExplosion2.png', 64, 65);
+            game.load.audio('enemyDeath', './assets/Audio/SFX/enemyDeath.wav');
+            game.load.audio('playerDeath', './assets/Audio/SFX/playerExplosion.wav');
+            game.load.audio('bomb', './assets/Audio/SFX/SpecialSS.wav');
+            game.load.audio('stage01BGM', './assets/Audio/BGM/EndOfSpring.mp3');
         }
 
+        var playerStats = {
+            score: 0,
+            graze: 0,
+            bomb: 2,
+            power: 0
+        };
+        var playerPower = 0;
+        var lifeText;
+        var powerText;
+        var gameOverText;
+        var gameTimer = 0;
         const playerPhysicsStats = {
             normalVelocity: 275,
             focusVelocity: 150
         };
         const enemyStats = {
             aimGruntHP: 10,
-            twoWayGruntHP: 24,
+            straightGruntHP: 16,
+            rotateGruntHP: 24,
             gruntXvelocity: 50,
-            gruntYvelocity: 100
+            gruntYvelocity: 50,
+            gruntStraightVelocity: 100,
+            movingGruntStraightXVelocity: 75,
+            movingGruntRotateXVelocity: 150,
+            movingGruntRotateYVelocity: 200,
+            reverseGruntRotateXVelocity: 300,
+            reverseGruntRotateYVelocity: 500
         };
         const enemyWeapon = {
             gruntBulletSpeed: 250,
             gruntBulletFireRate: 500,
-            gruntBulletAngleOffset: 90
+            gruntBulletAngleOffset: 90,
+            aimGruntBulletAngleOffset: 0,
+            gruntStraightBulletSpeed: 150, //100
+            gruntStraightBulletFireRate: 850, //16 is the lowest and quickest possible
+            movingGruntStraightBulletSpeed: 150,
+            movingGruntStraightBulletFireRate: 600,
+            gruntRotateBulletSpeed: 150,
+            gruntRotateBulletFireRate: 50,
+            gruntExplosiveRotateBulletSpeed: 100,
+            gruntExplosiveRotateFireRate: 16
         };
         const weaponStats = {
             weapon1BulletSpeed: 850,
@@ -50,8 +89,15 @@
             weapon1Damage: 4,
             weapon2Damage: 6
         };
+        var rotateGruntTimers = [];
+        var counterClockwiseShootID = [];
 
         var bg;
+        var bgm;
+        var enemyDeathSFX;
+        var playerDeathSFX;
+        var smallP;
+        var largeP;
         var weapon1;
         var weapon2;
         var playerHurtbox;
@@ -60,21 +106,75 @@
         var fireButton;
         var focusButton;
         var aimGrunts;
-        var twoWayGrunts;
+        var straightGrunts;
+        var rotateGrunts;
+        var gruntDeaths;
 
         // Enemy Weapons
         var aimGruntWeapons = [];
         var aimGruntWeaponDIS = []; // Stands for Death Index Signals
-        var twoWayGruntWeapons = [];
-        var twoWayGruntWeaponDIS = [];
+        var rotateGruntWeapons = [];
+        var rotateGruntWeaponDIS = [];
+        var straightGruntWeapons = [];
+        var straightGruntWeaponDIS = [];
+        var aimGruntExplosionDIS = [];
+        var rotateGruntExplosionDIS = [];
+        var straightGruntExplosionDIS = [];
 
 
         // weapon.Bullets is a group
         function create() {
             // Scrolling Background
-            //bgRT = game.add.tileSprite(256, 0, 256, 600, 'stage01BGrtSide');
-            //bgLT = game.add.tileSprite(0, 0, 256, 600, 'stage01BGltSide');
             bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
+
+            // Music and SFX
+            bgm = game.add.audio('stage01BGM');
+            bgm.play();
+            enemyDeathSFX = game.add.audio('enemyDeath');
+            enemyDeathSFX.volume = 0.8;
+            playerDeathSFX = game.add.audio('playerDeath');
+            playerDeathSFX.volume = 0.8;
+
+            // Items
+            /*
+            smallP = game.add.group();
+            smallP.enableBody = true;
+            smallP.physicsBodyType = Phaser.Physics.ARCADE;
+            smallP.createMultiple(200, 'smallP');
+            smallP.setAll('anchor.x', 0.5);
+            smallP.setAll('anchor.y', 0.5);
+            smallP.setAll('body.velocity.y', 200);
+            largeP = game.add.group();
+            largeP.enableBody = true;
+            largeP.physicsBodyType = Phaser.Physics.ARCADE;
+            largeP.createMultiple(200, 'largeP');
+            largeP.setAll('anchor.x', 0.5);
+            largeP.setAll('anchor.y', 0.5);
+            largeP.setAll('body.velocity.y', 200);
+            */
+            smallP = game.add.emitter(0, 0, 200);
+            smallP.enableBody = true;
+            smallP.physicsBodyType = Phaser.Physics.ARCADE;
+            smallP.forEach(function(powPellet) {
+                powPellet.outOfBoundsKill = true;
+                powPellet.checkWorldBounds = true;
+            });
+            smallP.makeParticles('smallP');
+            smallP.gravity = 200;
+            smallP.setXSpeed(-5, 5);
+            //smallP.setYSpeed(100);
+
+            largeP = game.add.emitter(0, 0, 200);
+            largeP.enableBody = true;
+            largeP.physicsBodyType = Phaser.Physics.ARCADE;
+            largeP.forEach(function(powPellet) {
+                powPellet.outOfBoundsKill = true;
+                powPellet.checkWorldBounds = true;
+            });
+            largeP.makeParticles('largeP');
+            smallP.gravity = 175;
+            smallP.setXSpeed(-5, 5);
+            //smallP.setYSpeed(100);
 
             // ___WEAPONS___
 
@@ -102,55 +202,31 @@
             aimGrunts = game.add.group();
             aimGrunts.enableBody = true;
             aimGrunts.physicsBodyType = Phaser.Physics.ARCADE;
-            twoWayGrunts = game.add.group();
-            twoWayGrunts.enableBody = true;
-            twoWayGrunts.physicsBodyType = Phaser.Physics.ARCADE;
-            /*for (var i = 0; i < 5; i++) {
-                var g = grunts.create(game.world.randomX, game.world.randomY, 'enemyTest');
-                g.body.immovable = true;
-            }
-            grunts.setAll('anchor.x', 0.5);
-            grunts.setAll('anchor.y', 0.5);
-            grunts.setAll('outOfBoundsKill', true);
-            grunts.setAll('checkWorldBounds', true);
-            grunts.setAll('health', enemyStats.aimGruntHP);
 
-            grunts.forEach(function(enemy) {
-                enemy.damageAmount = 10;
-            });*/
+            straightGrunts = game.add.group();
+            straightGrunts.enableBody = true;
+            straightGrunts.physicsBodyType = Phaser.Physics.ARCADE;
 
-            // Enemy Bullets
-            /*gruntBullets = game.add.weapon(10, 'gruntShot');
-            gruntBullets.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-            gruntBullets.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
-            gruntBullets.bulletSpeed = enemyWeapon.gruntBulletSpeed;
-            gruntBullets.fireRate = enemyWeapon.gruntBulletFireRate;
-            gruntBullets.createBullets(2, 'gruntShot', grunts);
-            gruntBullets.bullets.forEach(function(bullet) {
-                bullet.damageAmount = 1;
-            });*/
-            /*gruntBullets = game.add.group();
-            gruntBullets.enableBody = true;
-            gruntBullets.physicsBodyType = Phaser.Physics.ARCADE;
-            gruntBullets.createMultiple(100, 'gruntShot');
-            gruntBullets.setAll('anchor.x', 0.5);
-            gruntBullets.setAll('anchor.y', 0.5);
-            gruntBullets.setAll('outOfBoundsKill', true);
-            gruntBullets.setAll('checkWorldBounds', true);*/
-
+            rotateGrunts = game.add.group();
+            rotateGrunts.enableBody = true;
+            rotateGrunts.physicsBodyType = Phaser.Physics.ARCADE;
 
             // Player
             playerHurtbox = this.add.sprite((game.world.width/2), game.world.height - 150, 'sanaeHurtbox');
-            playerHurtbox.health = 1;
+            playerHurtbox.health = 3;
             playerHurtbox.anchor.setTo(0.5);
             playerSprite = this.add.sprite((game.world.width/2), game.world.height - 150, 'sanae');
+            playerSprite.health = 3;
             playerSprite.anchor.setTo(0.5);
+
 
             game.physics.arcade.enable(playerHurtbox);
             game.physics.arcade.enable(playerSprite);
             playerHurtbox.body.collideWorldBounds = true;
             playerHurtbox.body.setCircle(6, 1);
             playerSprite.body.collideWorldBounds = true;
+            console.log('hitbox x: ' + playerHurtbox.body.x + ', y: ' + playerHurtbox.body.y + ', ' + 'offset' + playerHurtbox.offsetX + ', ' + playerHurtbox.offsetY);
+            console.log('sprite x: ' + playerSprite.body.x + ', y: ' + playerSprite.body.y + ', ' + 'offset' + playerSprite.offsetX + ', ' + playerSprite.offsetY);
 
             // Weapon Tracking
             // -- Weapon on player
@@ -162,19 +238,47 @@
             fireButton = this.input.keyboard.addKey(Phaser.KeyCode.Z);
             focusButton = this.input.keyboard.addKey(Phaser.KeyCode.SHIFT);
 
-            spawnAimGrunt(game.world.randomX, 100, 0, enemyStats.gruntYvelocity, 'gruntBlue', 'gruntShot');
-            spawnAimGrunt(game.world.randomX, 200, 0, enemyStats.gruntYvelocity, 'gruntRed', 'gruntShot');
-            spawnAimGrunt(game.world.randomX, 50, -(enemyStats.gruntXvelocity), enemyStats.gruntYvelocity, 'gruntBlue', 'gruntShot');
-            spawnAimGrunt(game.world.randomX, 50, enemyStats.gruntXvelocity, enemyStats.gruntYvelocity, 'gruntRed', 'gruntShot');
+            // Game Text
+                // Lives
+            lifeText = game.add.text(10, game.world.height - 30, 'Lives: ' + playerSprite.health, { font: '20px Arial', fill: '#00FF00' });
+            lifeText.render = function() {
+                lifeText.text = 'Lives: ' + Math.max(playerSprite.health, 0);
+            };
+            powerText = game.add.text(10, game.world.height - 60, 'Power: ' + playerStats.power, { font: '20px Arial', fill: '#00FF00' });
+            powerText.render = function() {
+                powerText.text = 'Power: ' + Math.max(playerStats.power, 0);
+            };
+                // Game Over
+            gameOverText = game.add.text(game.world.centerX, game.world.centerY, 'GAME OVER\nTo restart, refresh the browser', { font: '30px Arial', fill: '#fff'});
+            gameOverText.anchor.setTo(0.5);
+            gameOverText.visible = false;
 
+                // Point of Collection Line
+            // implement here
+
+            // Enemy Death
+            gruntDeaths = game.add.group();
+            gruntDeaths.enableBody = true;
+            gruntDeaths.physicsBodyType = Phaser.Physics.ARCADE;
+            gruntDeaths.createMultiple(30, 'gruntDeathExplode');
+            gruntDeaths.setAll('anchor.x', 0.5);
+            gruntDeaths.setAll('anchor.y', 0.5);
+            gruntDeaths.forEach(function(explode) {
+               explode.animations.add('gruntDeathExplode');
+            });
+
+            //spawnStraightGrunt(400, 100, 0, 0, 'gruntStraightRed', 'straightGruntShot', false);
         }
 
         function update() {
             playerSprite.sendToBack();
             playerHurtbox.sendToBack();
             bg.sendToBack();
+            smallP.callAll('bringToTop');
+            largeP.callAll('bringToTop');
             aimGrunts.callAll('bringToTop');
-            twoWayGrunts.callAll('bringToTop');
+            straightGrunts.callAll('bringToTop');
+            rotateGrunts.callAll('bringToTop');
             playerHurtbox.body.velocity.x = 0;
             playerHurtbox.body.velocity.y = 0;
             playerSprite.body.velocity.x = 0;
@@ -184,29 +288,58 @@
                 // aimGrunts
             game.physics.arcade.overlap(playerHurtbox, aimGrunts, playerCollide, null, this);
             game.physics.arcade.overlap(weapon1.bullets, aimGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(weapon2.bullets, aimGrunts, bulletCollide, null, this);
 
-                // twoWayGrunts
-            game.physics.arcade.overlap(playerHurtbox, twoWayGrunts, playerCollide, null, this);
-            game.physics.arcade.overlap(weapon1.bullets, twoWayGrunts, bulletCollide, null, this);
+                // straightGrunts
+            game.physics.arcade.overlap(playerHurtbox, straightGrunts, playerCollide, null, this);
+            game.physics.arcade.overlap(weapon1.bullets, straightGrunts, bulletCollide, null, this);
+
+                // rotateGrunts
+            game.physics.arcade.overlap(playerHurtbox, rotateGrunts, playerCollide, null, this);
+            game.physics.arcade.overlap(weapon1.bullets, rotateGrunts, bulletCollide, null, this);
 
             // Check Enemy Bullet Collisions/Overlap
             checkGruntBulletOverlap(aimGruntWeapons);
+            checkGruntBulletOverlap(straightGruntWeapons);
+            checkGruntBulletOverlap(rotateGruntWeapons);
+
+            // Check Power Item Collisions
+            game.physics.arcade.overlap(playerSprite, smallP, playerPowerUp, null, this);
+            game.physics.arcade.overlap(playerSprite, largeP, playerPowerUp, null, this);
 
             checkControls();
 
             // Enemy Shooting
             gruntFireSprite(aimGrunts, aimGruntWeapons, aimGruntWeaponDIS);
+            gruntStraightFire(straightGrunts, straightGruntWeapons, straightGruntWeaponDIS);
+            gruntRotateFire(rotateGrunts, rotateGruntWeapons, rotateGruntWeaponDIS);
 
             // Scroll the bg
             bg.tilePosition.y += 2;
+
+            // Check game over
+            if (!playerHurtbox.alive && gameOverText.visible === false) {
+                gameOverText.visible = true;
+                var fadeInGameOver = game.add.tween(gameOverText);
+                fadeInGameOver.to({alpha: 0.2}, 1000, Phaser.Easing.Quintic.Out, false, 0, -1, true);
+                fadeInGameOver.start();
+            }
+            startStageOne();
+            if (bgm.volume <= 0) {
+                bgm.stop();
+                console.log('bgm stopped');
+            }
+            gameTimer++;
         }
 
         // DEBUGGING
         function render() {
             game.debug.body(playerHurtbox);
             aimGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
-            twoWayGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0,4)');
+            straightGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
+            rotateGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             weapon1.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
+            weapon2.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
         }
 
         function renderGroup(child, strColor) {
@@ -313,31 +446,101 @@
             }
         }
 
+        function burstSmallPower(spriteX, spriteY, spriteYvel, amount) {
+            smallP.x = spriteX;
+            smallP.y = spriteY;
+            smallP.setYSpeed(spriteYvel);
+            smallP.setRotation(0, 0);
+            smallP.start(true, 0, null, amount);
+        }
+
+        function burstLargePower(spriteX, spriteY, spriteYvel, amount) {
+            largeP.x = spriteX;
+            largeP.y = spriteY;
+            largeP.setYSpeed(spriteYvel);
+            largeP.setRotation(0, 0);
+            largeP.start(true, 0, null, amount);
+        }
+
+        function playerPowerUp(player, p) {
+            console.log('powered up');
+            console.log(p.key);
+            p.kill();
+            if (p.key === 'smallP') {
+                console.log('smallP collect');
+                playerStats.power += 50;
+            }
+            else if (p.key === 'largeP') {
+                console.log('largeP collect');
+                playerStats.power += 100;
+            }
+            powerText.render();
+        }
+
         function playerCollide(player, enemy) {
+            console.log('enemy collide');
             player.damage(enemy.damageAmount);
-            playerSprite.kill();
+            playerSprite.damage(enemy.damageAmount);
+            lifeText.render();
+            playerDeathSFX.play();
+            player.body.x = 250;
+            player.body.y = 443.5;
+            playerSprite.body.x = 243;
+            playerSprite.body.y = 428;
+            console.log(player.health);
+            console.log(playerSprite.health);
+            if (aimGruntWeapons.length > 0) {
+                for (var i = 0; i < aimGruntWeapons.length; i++) {
+                    aimGruntWeapons[i].killAll();
+                }
+            }
+            if (straightGruntWeapons.length > 0) {
+                for (var j = 0; j < straightGruntWeapons.length; j++) {
+                    //straightGruntWeapons[straightGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
+                    straightGruntWeapons[j].killAll();
+                }
+            }
+            if (rotateGruntWeapons.length > 0) {
+                for (var k = 0; k < rotateGruntWeapons.length; k++) {
+                    //rotateGruntWeapons[rotateGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
+                    rotateGruntWeapons[k].killAll();
+
+                }
+            }
         }
 
         // when sprite dies, its bullets linger and will still deal damage
         function bulletCollide(bullet, sprite) {
-            bullet.kill();
-            sprite.damage(bullet.damageAmount);
-
-            /*
-            // aimGruntWeaponDIS length will be 1 or greater when a grunt has died
-            // So when the grunt at index has been killed, weapon should also be 'killed', by splicing from array
-            if (aimGruntWeaponDIS.length >= 1) {
-                for (var i = 0; i < aimGruntWeaponDIS.length; i++) {
-                    console.log('in for loop');
-                    // Set Weapon to null in the array when the grunt owner at respected index has died and all its bullets are gone
-                    if (aimGruntWeaponDIS[i] != null && aimGruntWeaponDIS[i].callCount >= 1 && aimGruntWeapons[i].bullets <= 0) {
-                        console.log('hello');
-                        aimGruntWeapons[i] = null;
-                        aimGruntWeaponDIS[i] = null;
+            if (bullet !== undefined) {
+                bullet.kill();
+                sprite.damage(bullet.damageAmount);
+                if (sprite.health <= 0) {
+                    var spriteX = sprite.body.x;
+                    var spriteY = sprite.body.y;
+                    var spriteYvel = sprite.body.velocity.y;
+                    if (sprite.name === 'aimGrunt') {
+                        burstSmallPower(spriteX, spriteY, spriteYvel, 5); // 250 Power
+                        burstLargePower(spriteX, spriteY, spriteYvel, 2); // 200 Power
+                        console.log('aim grunt release Power'); // Total Power Release: 450
                     }
+                    else if (sprite.name === 'rotateGrunt') {
+                        burstSmallPower(spriteX, spriteY, spriteYvel, 3); // 150 Power
+                        burstLargePower(spriteX, spriteY, spriteYvel, 5); // 500 Power
+                        console.log('rotateGrunt release Power'); // Total Power Release: 650
+                    }
+                    else if (sprite.name === 'straightGrunt') {
+                        burstSmallPower(spriteX, spriteY, spriteYvel, 2); // 100 Power
+                        burstLargePower(spriteX, spriteY, spriteYvel, 1); // 100 Power
+                        console.log('straightGrunt release Power'); // Total Power Release: 200
+                    }
+                    var spriteDeathAnim = gruntDeaths.getFirstExists(false);
+                    spriteDeathAnim.reset(sprite.body.x + sprite.body.halfWidth, sprite.body.y + sprite.body.halfHeight);
+                    spriteDeathAnim.body.velocity.y = sprite.body.velocity.y;
+                    spriteDeathAnim.alpha = 1;
+                    spriteDeathAnim.play('gruntDeathExplode', 30, false, true);
+                    enemyDeathSFX.play();
                 }
             }
-            */
         }
 
         function checkGruntBulletOverlap(gruntWeaponArray) {
@@ -353,9 +556,36 @@
         }
 
         function gruntShotCollide(player, bullet) {
-            bullet.kill();
-            player.kill();
-            playerSprite.kill();
+            console.log('grunt bullet collide');
+            player.damage(bullet.damageAmount);
+            playerSprite.damage(bullet.damageAmount);
+            lifeText.render();
+            playerDeathSFX.play();
+            player.body.x = 250;
+            player.body.y = 443.5;
+            playerSprite.body.x = 243;
+            playerSprite.body.y = 428;
+            console.log(player.health);
+            console.log(playerSprite.health);
+            if (aimGruntWeapons.length > 0) {
+                for (var i = 0; i < aimGruntWeapons.length; i++) {
+                    aimGruntWeapons[i].killAll();
+                }
+            }
+            if (straightGruntWeapons.length > 0) {
+                for (var j = 0; j < straightGruntWeapons.length; j++) {
+                    //straightGruntWeapons[straightGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
+                    straightGruntWeapons[j].killAll();
+                }
+            }
+            if (rotateGruntWeapons.length > 0) {
+                for (var k = 0; k < rotateGruntWeapons.length; k++) {
+                    //rotateGruntWeapons[rotateGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
+                    rotateGruntWeapons[k].killAll();
+
+                }
+            }
+            // start gameover state here
         }
 
         // perfect now
@@ -365,14 +595,15 @@
             newGrunt.outOfBoundsKill = true;
             newGrunt.checkWorldBounds = true;
             newGrunt.setHealth(enemyStats.aimGruntHP);
-            newGrunt.damageAmount = 10;
+            newGrunt.damageAmount = 1;
             newGrunt.body.immovable = true;
             newGrunt.body.velocity.x = velocityX;
             newGrunt.body.velocity.y = velocityY;
+            newGrunt.name = 'aimGrunt';
 
             var newWeapon = game.add.weapon(30, weaponName);
             newWeapon.bulletSpeed = enemyWeapon.gruntBulletSpeed;
-            newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
+            newWeapon.bulletAngleOffset = enemyWeapon.aimGruntBulletAngleOffset;
             newWeapon.fireRate = enemyWeapon.gruntBulletFireRate;
             newWeapon.bullets.forEach(function(bullet) {
                 bullet.damageAmount = 1;
@@ -381,43 +612,326 @@
             aimGruntWeapons.push(newWeapon);
             aimGruntWeaponDIS.push(newGrunt.events.onKilled.add(checkGruntKill, this, this, aimGrunts));
         }
-        
-        function spawnTwoWayGrunt(x, y, velocityX, velocityY, spriteName, weaponName) {
-            var newGrunt = twoWayGrunts.create(x, y, spriteName);
+
+        // perfect now
+        function spawnRotateGrunt(x, y, velocityX, velocityY, spriteName, weaponName, clockwise, explosive) {
+            var newGrunt = rotateGrunts.create(x, y, spriteName);
             newGrunt.anchor.setTo(0.5);
             newGrunt.outOfBoundsKill = true;
             newGrunt.checkWorldBounds = true;
-            newGrunt.setHealth(enemyStats.twoWayGruntHP);
-            newGrunt.damageAmount = 10;
+            newGrunt.setHealth(enemyStats.rotateGruntHP);
+            newGrunt.damageAmount = 1;
             newGrunt.body.immovable = true;
             newGrunt.body.velocity.x = velocityX;
             newGrunt.body.velocity.y = velocityY;
+            newGrunt.name = 'rotateGrunt';
 
-            var newWeapon = game.add.weapon(60, weaponName);
-            newWeapon.bulletSpeed = enemyWeapon.gruntBulletSpeed;
+            var newWeapon = game.add.weapon(80, weaponName);
             newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
-            newWeapon.fireRate = enemyWeapon.gruntBulletFireRate;
+            if (explosive) {
+                newGrunt.setHealth(4);
+                newWeapon.bulletSpeed = enemyWeapon.gruntExplosiveRotateBulletSpeed;
+                newWeapon.fireRate = enemyWeapon.gruntExplosiveRotateFireRate;
+            }
+            else {
+                newWeapon.bulletSpeed = enemyWeapon.gruntRotateBulletSpeed;
+                newWeapon.fireRate = enemyWeapon.gruntRotateBulletFireRate;
+            }
             newWeapon.bullets.forEach(function(bullet) {
                 bullet.damageAmount = 1;
             });
             newWeapon.trackSprite(newGrunt, 0, 0);
-            twoWayGruntWeapons.push(newWeapon);
-            twoWayGruntWeaponDIS.push(newGrunt.events.onKilled.add(checkGruntKill, this, this, twoWayGrunts));
+            rotateGruntWeapons.push(newWeapon);
+            rotateGruntWeaponDIS.push(newGrunt.events.onKilled.add(checkGruntKill, this, this, rotateGrunts));
+            rotateGruntTimers.push(0);
+            if (clockwise) {
+                counterClockwiseShootID.push(rotateGruntWeapons.length - 1);
+            }
         }
 
+        function spawnStraightGrunt(x, y, velocityX, velocityY, spriteName, weaponName, moving) {
+            var newGrunt = straightGrunts.create(x, y, spriteName);
+            newGrunt.anchor.setTo(0.5);
+            newGrunt.outOfBoundsKill = true;
+            newGrunt.checkWorldBounds = true;
+            newGrunt.setHealth(enemyStats.straightGruntHP);
+            newGrunt.damageAmount = 1;
+            newGrunt.body.immovable = true;
+            newGrunt.body.velocity.x = velocityX;
+            newGrunt.body.velocity.y = velocityY;
+            newGrunt.name = 'straightGrunt';
+
+            var newWeapon = game.add.weapon(30, weaponName);
+            newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
+            if (moving) {
+                newWeapon.bulletSpeed = enemyWeapon.movingGruntStraightBulletSpeed;
+                newWeapon.fireRate = enemyWeapon.movingGruntStraightBulletFireRate;
+            }
+            else {
+                newWeapon.bulletSpeed = enemyWeapon.gruntStraightBulletSpeed;
+                newWeapon.fireRate = enemyWeapon.gruntStraightBulletFireRate;
+            }
+            newWeapon.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 1;
+                bullet.body.setCircle(13, 2.5, 4);
+                //bullet.body.setCircle(14, 1.5, 3);
+            });
+            newWeapon.trackSprite(newGrunt, 0, 0);
+            straightGruntWeapons.push(newWeapon);
+            straightGruntWeaponDIS.push(newGrunt.events.onKilled.add(checkGruntKill, this, this, straightGrunts));
+        }
+
+        // aimGruntFire
         function gruntFireSprite(gruntGroup, gruntWeaponArray, gruntWeaponDIS) {
             // if player is a live and aimGruntWeapons exist shoot every weapon at the player
             if (playerHurtbox.alive && gruntWeaponArray.length > 0) {
                 for (var i = 0; i < gruntWeaponArray.length; i++) {
-                    //if (grunts.getChildAt(i).health > 0 && aimGruntWeapons[i] != null && aimGruntWeaponDIS[i] != null && aimGruntWeaponDIS[i].callCount <= 0) {
+                    // shoot at player when self is healthy and its onKilled signal hasn't been called
                     if (gruntGroup.getChildAt(i).health > 0 && gruntWeaponDIS[i].callCount <= 0) {
                         gruntWeaponArray[i].fireAtSprite(playerHurtbox);
                     }
                 }
             }
         }
+
+        // straightGruntFire
+        function gruntStraightFire(gruntGroup, gruntWeaponArray, gruntWeaponDIS) {
+            if (playerHurtbox.alive && gruntWeaponArray.length > 0) {
+                for (var i = 0; i < gruntWeaponArray.length; i++) {
+                    // shoot at player when self is healthy and its onKilled signal hasn't been called
+                    if (gruntGroup.getChildAt(i).health > 0 && gruntWeaponDIS[i].callCount <= 0) {
+                        //gruntWeaponArray[i].fire(null, gruntGroup.getChildAt(i).body.x + 22, game.world.height);
+                        gruntWeaponArray[i].fireAngle = 90;
+                        //gruntWeaponArray[i].bullets.setAll('body.velocity.x', 0);
+                        gruntWeaponArray[i].fire();
+                    }
+                }
+            }
+        }
+
+        // rotateGruntFire
+        function gruntRotateFire(gruntGroup, gruntWeaponArray, gruntWeaponDIS) {
+            if (playerHurtbox.alive && gruntWeaponArray.length > 0) {
+                for (var i = 0; i < gruntWeaponArray.length > 0; i++) {
+                    if (gruntGroup.getChildAt(i).health > 0 && gruntWeaponDIS[i].callCount <= 0) {
+                        //gruntWeaponArray[i].fire(null, gruntGroup.getChildAt(i).body.x + 22, game.world.height);
+                        //console.log('first fire x velocity: ' + gruntWeaponArray[i].bullets.getFirstAlive().body.velocity.x);
+                        if (rotateGruntTimers[i] == 0) {
+                            gruntWeaponArray[i].fire();
+                            rotateGruntTimers[i] = game.time.now + gruntWeaponArray[i].fireRate;
+                        }
+                        if (game.time.now > rotateGruntTimers[i]) {
+                            gruntWeaponArray[i].fire();
+                            rotateGruntTimers[i] = game.time.now + gruntWeaponArray[i].fireRate;
+                            if (counterClockwiseShootID.length > 0) {
+                                for (var j = 0; j < counterClockwiseShootID.length; j++) {
+                                    if (i === counterClockwiseShootID[j]) {
+                                        gruntWeaponArray[i].fireAngle -= 25;
+                                    }
+                                    else {
+                                        gruntWeaponArray[i].fireAngle += 25;
+                                    }
+                                }
+                            }
+                            else {
+                                gruntWeaponArray[i].fireAngle += 25;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         function checkGruntKill(grunt, gruntGroup) {
             return gruntGroup.getChildIndex(grunt);
+        }
+
+        // Stage 01
+        function startStageOne() {
+            switch(gameTimer) {
+                case 200:
+                    spawnStraightGrunt(256, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot', false);
+                    break;
+                case 250:
+                    spawnStraightGrunt(128, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot', false);
+                    spawnStraightGrunt(256, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot', false);
+                    spawnStraightGrunt(384, 10, 0, enemyStats.gruntStraightVelocity, 'gruntStraightBlue', 'straightGruntShot', false);
+                    break;
+                case 320:
+                    spawnAimGrunt(200, 10, 0, enemyStats.gruntStraightVelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(312, 10, 0, enemyStats.gruntStraightVelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 550:
+                    spawnStraightGrunt(500, 10, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 600:
+                    spawnStraightGrunt(500, 10, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 620:
+                    spawnStraightGrunt(10, 10, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    break;
+                case 650:
+                    spawnStraightGrunt(500, 10, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 670:
+                    spawnStraightGrunt(10, 10, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    break;
+                case 685:
+                    spawnAimGrunt(128, 10, 0, enemyStats.gruntStraightVelocity, 'gruntAimRed', 'aimGruntShot');
+                    spawnAimGrunt(384, 10, 0, enemyStats.gruntStraightVelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 700:
+                    spawnStraightGrunt(500, 10, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 720:
+                    spawnStraightGrunt(10, 10, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    break;
+                case 750:
+                    spawnStraightGrunt(500, 10, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 770:
+                    spawnStraightGrunt(10, 10, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    break;
+                case 820:
+                    spawnStraightGrunt(10, 10, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    break;
+                case 870:
+                    spawnRotateGrunt(50, 10, 0, enemyStats.gruntStraightVelocity, 'gruntRotate', 'rotateGruntShot', true, false);
+                    break;
+                case 950:
+                    spawnRotateGrunt(462, 10, 0, enemyStats.gruntStraightVelocity, 'gruntRotate', 'rotateGruntShot', false, false);
+                    break;
+                case 1150:
+                    spawnRotateGrunt(500, 100, -enemyStats.movingGruntStraightXVelocity, 0, 'gruntRotate', 'rotateGruntShot', true, false);
+                    break;
+                case 1170:
+                    spawnRotateGrunt(500, 100, -enemyStats.movingGruntStraightXVelocity, 0, 'gruntRotate', 'rotateGruntShot', true, false);
+                    break;
+                case 1210:
+                    spawnRotateGrunt(500, 100, -enemyStats.movingGruntStraightXVelocity, 0, 'gruntRotate', 'rotateGruntShot', true, false);
+                    break;
+                case 1230:
+                    spawnRotateGrunt(500, 100, -enemyStats.movingGruntStraightXVelocity, 0, 'gruntRotate', 'rotateGruntShot', true, false);
+                    break;
+                case 1500:
+                    spawnRotateGrunt(480, 10, 0, 500, 'gruntRotate', 'rotateGruntShot', true, true);
+                    spawnRotateGrunt(32, 10, 0, 500, 'gruntRotate', 'rotateGruntShot', false, true);
+                    break;
+                case 1600:
+                    spawnRotateGrunt(448, 10, 0, 600, 'gruntRotate', 'rotateGruntShot', true, true);
+                    spawnRotateGrunt(64, 10, 0, 600, 'gruntRotate', 'rotateGruntShot', false, true);
+                    break;
+                case 1700:
+                    spawnRotateGrunt(416, 10, 0, 700, 'gruntRotate', 'rotateGruntShot', true, true);
+                    spawnRotateGrunt(96, 10, 0, 700, 'gruntRotate', 'rotateGruntShot', false, true);
+                    break;
+                case 1800:
+                    spawnRotateGrunt(384, 10, 0, 800, 'gruntRotate', 'rotateGruntShot', true, true);
+                    spawnRotateGrunt(128, 10, 0, 800, 'gruntRotate', 'rotateGruntShot', false, true);
+                    break;
+                case 1900:
+                    spawnRotateGrunt(224, 10, 0, 800, 'gruntRotate', 'rotateGruntShot', false, true);
+                    spawnRotateGrunt(288, 10, 0, 800, 'gruntRotate', 'rotateGruntShot', true, true);
+                    break;
+                case 2150:
+                    spawnAimGrunt(500, 40, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(500, 120, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 2300:
+                    spawnAimGrunt(500, 40, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(500, 120, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 2450:
+                    spawnAimGrunt(500, 40, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(500, 120, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 2600:
+                    spawnAimGrunt(500, 40, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(500, 120, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 2750:
+                    spawnAimGrunt(500, 40, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(500, 120, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 2800:
+                    spawnAimGrunt(10, 40, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(10, 120, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 2900:
+                    spawnAimGrunt(10, 40, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(10, 120, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 3000:
+                    spawnAimGrunt(10, 40, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(10, 120, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 3100:
+                    spawnAimGrunt(10, 40, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    spawnAimGrunt(10, 120, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntAimBlue', 'aimGruntShot');
+                    break;
+                case 3350:
+                    spawnRotateGrunt(500, 590, -enemyStats.reverseGruntRotateXVelocity, -enemyStats.reverseGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', true, false);
+                    spawnRotateGrunt(10, 590, enemyStats.reverseGruntRotateXVelocity, -enemyStats.reverseGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', false, false);
+                    break;
+                case 3550:
+                    spawnRotateGrunt(500, 10, -enemyStats.reverseGruntRotateXVelocity, enemyStats.reverseGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', true, false);
+                    spawnRotateGrunt(10, 10, enemyStats.reverseGruntRotateXVelocity, enemyStats.reverseGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', false, false);
+                    break;
+                case 3750:
+                    spawnRotateGrunt(500, 590, -enemyStats.reverseGruntRotateXVelocity, -enemyStats.reverseGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', true, false);
+                    spawnRotateGrunt(10, 590, enemyStats.reverseGruntRotateXVelocity, -enemyStats.reverseGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', false, false);
+                    spawnStraightGrunt(10, 10, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 10, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    break;
+                case 4050:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4100:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4150:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4200:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4250:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4300:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4350:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    spawnRotateGrunt(128, 25, 0, enemyStats.movingGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', true, true);
+                    break;
+                case 4400:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4450:
+                    spawnStraightGrunt(10, 50, enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightBlue', 'straightGruntShot', true);
+                    spawnStraightGrunt(500, 50, -enemyStats.movingGruntStraightXVelocity, enemyStats.gruntYvelocity, 'gruntStraightRed', 'straightGruntShot', true);
+                    break;
+                case 4650:
+                    spawnRotateGrunt(384, 25, 0, enemyStats.movingGruntRotateYVelocity, 'gruntRotate', 'rotateGruntShot', false, true);
+                    break;
+                case 4750:
+                    //bgm fade
+                    bgm.fadeOut(7000);
+                    //tween fade into black and then out to new background
+                    break;
+                default:
+                    //console.log(gameTimer);
+                    break;
+            }
         }
     </script>
 </body>
