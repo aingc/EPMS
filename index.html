@@ -161,8 +161,8 @@
             });
             smallP.makeParticles('smallP');
             smallP.gravity = 200;
-            smallP.setXSpeed(-50, 50);
-            smallP.setYSpeed(100);
+            smallP.setXSpeed(-5, 5);
+            //smallP.setYSpeed(100);
 
             largeP = game.add.emitter(0, 0, 200);
             largeP.enableBody = true;
@@ -173,8 +173,8 @@
             });
             largeP.makeParticles('largeP');
             smallP.gravity = 175;
-            smallP.setXSpeed(-50, 50);
-            smallP.setYSpeed(100);
+            smallP.setXSpeed(-5, 5);
+            //smallP.setYSpeed(100);
 
             // ___WEAPONS___
 
@@ -446,16 +446,18 @@
             }
         }
 
-        function burstSmallPower(spriteX, spriteY, amount) {
+        function burstSmallPower(spriteX, spriteY, spriteYvel, amount) {
             smallP.x = spriteX;
             smallP.y = spriteY;
+            smallP.setYSpeed(spriteYvel);
             smallP.setRotation(0, 0);
             smallP.start(true, 0, null, amount);
         }
 
-        function burstLargePower(spriteX, spriteY, amount) {
+        function burstLargePower(spriteX, spriteY, spriteYvel, amount) {
             largeP.x = spriteX;
             largeP.y = spriteY;
+            largeP.setYSpeed(spriteYvel);
             largeP.setRotation(0, 0);
             largeP.start(true, 0, null, amount);
         }
@@ -515,19 +517,20 @@
                 if (sprite.health <= 0) {
                     var spriteX = sprite.body.x;
                     var spriteY = sprite.body.y;
+                    var spriteYvel = sprite.body.velocity.y;
                     if (sprite.name === 'aimGrunt') {
-                        burstSmallPower(spriteX, spriteY, 5); // 250 Power
-                        burstLargePower(spriteX, spriteY, 2); // 200 Power
+                        burstSmallPower(spriteX, spriteY, spriteYvel, 5); // 250 Power
+                        burstLargePower(spriteX, spriteY, spriteYvel, 2); // 200 Power
                         console.log('aim grunt release Power'); // Total Power Release: 450
                     }
                     else if (sprite.name === 'rotateGrunt') {
-                        burstSmallPower(spriteX, spriteY, 3); // 150 Power
-                        burstLargePower(spriteX, spriteY, 5); // 500 Power
+                        burstSmallPower(spriteX, spriteY, spriteYvel, 3); // 150 Power
+                        burstLargePower(spriteX, spriteY, spriteYvel, 5); // 500 Power
                         console.log('rotateGrunt release Power'); // Total Power Release: 650
                     }
                     else if (sprite.name === 'straightGrunt') {
-                        burstSmallPower(spriteX, spriteY, 2); // 100 Power
-                        burstLargePower(spriteX, spriteY, 1); // 100 Power
+                        burstSmallPower(spriteX, spriteY, spriteYvel, 2); // 100 Power
+                        burstLargePower(spriteX, spriteY, spriteYvel, 1); // 100 Power
                         console.log('straightGrunt release Power'); // Total Power Release: 200
                     }
                     var spriteDeathAnim = gruntDeaths.getFirstExists(false);
