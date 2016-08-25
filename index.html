@@ -44,11 +44,13 @@
             score: 0,
             graze: 0,
             bomb: 2,
-            power: 0
+            power: 0,
+            weaponName: 'SINGLE SHOT'
         };
         var playerPower = 0;
         var lifeText;
         var powerText;
+        var weaponText;
         var gameOverText;
         var pocLineText;
         var pocLine;
@@ -104,6 +106,8 @@
         var largeP;
         var singleShot;
         var doubleShot;
+        var waveShotLT;
+        var waveShotRT;
         var playerHurtbox;
         var playerSprite;
         var cursors;
@@ -202,6 +206,23 @@
                bullet.damageAmount = 5;
             });
 
+            // Wave Shot
+            waveShotLT = game.add.weapon(30, 'spreadPrimary');
+            waveShotLT.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            waveShotLT.bulletSpeed = 850;
+            waveShotLT.fireRate = 180;
+            waveShotLT.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 2;
+            });
+            waveShotRT = game.add.weapon(30, 'spreadPrimary');
+            waveShotRT.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            waveShotRT.bulletSpeed = 850;
+            waveShotRT.fireRate = 180;
+            waveShotRT.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 2;
+            });
+
+
             // Enemies
             aimGrunts = game.add.group();
             aimGrunts.enableBody = true;
@@ -236,6 +257,8 @@
             // -- Weapon on player
             singleShot.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
             doubleShot.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
+            waveShotLT.trackSprite(playerSprite, -50, -(playerSprite.height/2 + 27));
+            waveShotRT.trackSprite(playerSprite, 50, -(playerSprite.height/2 + 27));
 
             // Setting Controls
             cursors = this.input.keyboard.createCursorKeys();
@@ -256,6 +279,12 @@
             gameOverText = game.add.text(game.world.centerX, game.world.centerY, 'GAME OVER\nTo restart, refresh the browser', { font: '30px Arial', fill: '#fff'});
             gameOverText.anchor.setTo(0.5);
             gameOverText.visible = false;
+
+                // Weapon
+            weaponText = game.add.text(300, game.world.height - 40, playerStats.weaponName, { font: '30px Arial', fill: '#00FFFF' });
+            weaponText.render = function() {
+                weaponText.text = playerStats.weaponName;
+            };
 
                 // POC Line Text
             pocLineText = game.add.text(game.world.centerX, game.world.centerY/2 - 10, 'Point of Collection', {font: '25px Arial', fill: '#00FF00'});
@@ -302,16 +331,22 @@
             game.physics.arcade.overlap(playerHurtbox, aimGrunts, playerCollide, null, this);
             game.physics.arcade.overlap(singleShot.bullets, aimGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(doubleShot.bullets, aimGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(waveShotLT.bullets, aimGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(waveShotRT.bullets, aimGrunts, bulletCollide, null, this);
 
                 // straightGrunts
             game.physics.arcade.overlap(playerHurtbox, straightGrunts, playerCollide, null, this);
             game.physics.arcade.overlap(singleShot.bullets, straightGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(doubleShot.bullets, straightGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(waveShotLT.bullets, straightGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(waveShotRT.bullets, straightGrunts, bulletCollide, null, this);
 
                 // rotateGrunts
             game.physics.arcade.overlap(playerHurtbox, rotateGrunts, playerCollide, null, this);
             game.physics.arcade.overlap(singleShot.bullets, rotateGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(doubleShot.bullets, rotateGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(waveShotLT.bullets, rotateGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(waveShotRT.bullets, rotateGrunts, bulletCollide, null, this);
 
             // Check Enemy Bullet Collisions/Overlap
             checkGruntBulletOverlap(aimGruntWeapons);
@@ -473,19 +508,30 @@
                 singleShot.fire();
                 // Update weapon text: 'SINGLE SHOT'
             }
+            // focus fire single shot here
             else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 250 && playerStats.power < 500) {
                 doubleShot.fire();
+                playerStats.weaponName = 'DOUBLE SHOT';
+                weaponText.render();
                 // Update weapon text: 'DOUBLE SHOT'
             }
+            // focus fire double shot here
             else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 500 && playerStats.power < 750) {
                 singleShot.fire();
                 doubleShot.fire();
+                playerStats.weaponName = 'TRIPLE SHOT';
+                weaponText.render();
                 // Update weapon text: 'TRIPLE SHOT'
             }
+            // focus fire triple shot here
             else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 750) {
                 // Update weapon text: 'MAX POWER'
                 singleShot.fire();
                 doubleShot.fire();
+                waveShotLT.fire();
+                waveShotRT.fire();
+                playerStats.weaponName = 'WAVE SHOT';
+                weaponText.render();
             }
 
             // Check POC Line
@@ -525,6 +571,18 @@
             if (p.key === 'smallP') {
                 console.log('smallP collect');
                 playerStats.power += 50;
+                if (playerStats.power >= 250 && playerStats.power < 500 && playerStats.weaponName !== 'DOUBLE SHOT') {
+                    playerStats.weaponName = 'DOUBLE SHOT';
+                    weaponText.render();
+                }
+                else if (playerStats.power >= 500 && playerStats.power < 750 && playerStats.weaponName !== 'TRIPLE SHOT') {
+                    playerStats.weaponName = 'TRIPLE SHOT';
+                    weaponText.render();
+                }
+                else if (playerStats.power > 750 && playerStats.weaponName !== 'WAVE SHOT') {
+                    playerStats.weaponName = 'WAVE SHOT';
+                    weaponText.render();
+                }
             }
             else if (p.key === 'largeP') {
                 console.log('largeP collect');
