@@ -31,6 +31,8 @@
             game.load.image('singlePrimary', './assets/Player/playerShotA.png');
             game.load.image('doublePrimary', './assets/Player/playerShotB.png');
             game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
+            game.load.image('smallP', './assets/Player/PowerSmall.png');
+            game.load.image('largeP', './assets/Player/PowerLarge.png');
             game.load.spritesheet('gruntDeathExplode', './assets/Enemy/gruntDeathExplosion2.png', 64, 65);
             game.load.audio('enemyDeath', './assets/Audio/SFX/enemyDeath.wav');
             game.load.audio('playerDeath', './assets/Audio/SFX/playerExplosion.wav');
@@ -41,10 +43,12 @@
         var playerStats = {
             score: 0,
             graze: 0,
-            lives: 3,
-            bomb: 2
+            bomb: 2,
+            power: 0
         };
+        var playerPower = 0;
         var lifeText;
+        var powerText;
         var gameOverText;
         var gameTimer = 0;
         const playerPhysicsStats = {
@@ -92,6 +96,8 @@
         var bgm;
         var enemyDeathSFX;
         var playerDeathSFX;
+        var smallP;
+        var largeP;
         var weapon1;
         var weapon2;
         var playerHurtbox;
@@ -128,6 +134,47 @@
             enemyDeathSFX.volume = 0.8;
             playerDeathSFX = game.add.audio('playerDeath');
             playerDeathSFX.volume = 0.8;
+
+            // Items
+            /*
+            smallP = game.add.group();
+            smallP.enableBody = true;
+            smallP.physicsBodyType = Phaser.Physics.ARCADE;
+            smallP.createMultiple(200, 'smallP');
+            smallP.setAll('anchor.x', 0.5);
+            smallP.setAll('anchor.y', 0.5);
+            smallP.setAll('body.velocity.y', 200);
+            largeP = game.add.group();
+            largeP.enableBody = true;
+            largeP.physicsBodyType = Phaser.Physics.ARCADE;
+            largeP.createMultiple(200, 'largeP');
+            largeP.setAll('anchor.x', 0.5);
+            largeP.setAll('anchor.y', 0.5);
+            largeP.setAll('body.velocity.y', 200);
+            */
+            smallP = game.add.emitter(0, 0, 200);
+            smallP.enableBody = true;
+            smallP.physicsBodyType = Phaser.Physics.ARCADE;
+            smallP.forEach(function(powPellet) {
+                powPellet.outOfBoundsKill = true;
+                powPellet.checkWorldBounds = true;
+            });
+            smallP.makeParticles('smallP');
+            smallP.gravity = 200;
+            smallP.setXSpeed(-50, 50);
+            smallP.setYSpeed(100);
+
+            largeP = game.add.emitter(0, 0, 200);
+            largeP.enableBody = true;
+            largeP.physicsBodyType = Phaser.Physics.ARCADE;
+            largeP.forEach(function(powPellet) {
+                powPellet.outOfBoundsKill = true;
+                powPellet.checkWorldBounds = true;
+            });
+            largeP.makeParticles('largeP');
+            smallP.gravity = 175;
+            smallP.setXSpeed(-50, 50);
+            smallP.setYSpeed(100);
 
             // ___WEAPONS___
 
@@ -197,10 +244,17 @@
             lifeText.render = function() {
                 lifeText.text = 'Lives: ' + Math.max(playerSprite.health, 0);
             };
+            powerText = game.add.text(10, game.world.height - 60, 'Power: ' + playerStats.power, { font: '20px Arial', fill: '#00FF00' });
+            powerText.render = function() {
+                powerText.text = 'Power: ' + Math.max(playerStats.power, 0);
+            };
                 // Game Over
             gameOverText = game.add.text(game.world.centerX, game.world.centerY, 'GAME OVER\nTo restart, refresh the browser', { font: '30px Arial', fill: '#fff'});
             gameOverText.anchor.setTo(0.5);
             gameOverText.visible = false;
+
+                // Point of Collection Line
+            // implement here
 
             // Enemy Death
             gruntDeaths = game.add.group();
@@ -220,6 +274,8 @@
             playerSprite.sendToBack();
             playerHurtbox.sendToBack();
             bg.sendToBack();
+            smallP.callAll('bringToTop');
+            largeP.callAll('bringToTop');
             aimGrunts.callAll('bringToTop');
             straightGrunts.callAll('bringToTop');
             rotateGrunts.callAll('bringToTop');
@@ -246,6 +302,10 @@
             checkGruntBulletOverlap(aimGruntWeapons);
             checkGruntBulletOverlap(straightGruntWeapons);
             checkGruntBulletOverlap(rotateGruntWeapons);
+
+            // Check Power Item Collisions
+            game.physics.arcade.overlap(playerSprite, smallP, playerPowerUp, null, this);
+            game.physics.arcade.overlap(playerSprite, largeP, playerPowerUp, null, this);
 
             checkControls();
 
@@ -386,6 +446,35 @@
             }
         }
 
+        function burstSmallPower(spriteX, spriteY, amount) {
+            smallP.x = spriteX;
+            smallP.y = spriteY;
+            smallP.setRotation(0, 0);
+            smallP.start(true, 0, null, amount);
+        }
+
+        function burstLargePower(spriteX, spriteY, amount) {
+            largeP.x = spriteX;
+            largeP.y = spriteY;
+            largeP.setRotation(0, 0);
+            largeP.start(true, 0, null, amount);
+        }
+
+        function playerPowerUp(player, p) {
+            console.log('powered up');
+            console.log(p.key);
+            p.kill();
+            if (p.key === 'smallP') {
+                console.log('smallP collect');
+                playerStats.power += 50;
+            }
+            else if (p.key === 'largeP') {
+                console.log('largeP collect');
+                playerStats.power += 100;
+            }
+            powerText.render();
+        }
+
         function playerCollide(player, enemy) {
             console.log('enemy collide');
             player.damage(enemy.damageAmount);
@@ -396,8 +485,6 @@
             player.body.y = 443.5;
             playerSprite.body.x = 243;
             playerSprite.body.y = 428;
-            //var tempHp = player.health;
-            //player.reset(game.world.width / 2, game.world.height - 150, player.health);
             console.log(player.health);
             console.log(playerSprite.health);
             if (aimGruntWeapons.length > 0) {
@@ -426,6 +513,23 @@
                 bullet.kill();
                 sprite.damage(bullet.damageAmount);
                 if (sprite.health <= 0) {
+                    var spriteX = sprite.body.x;
+                    var spriteY = sprite.body.y;
+                    if (sprite.name === 'aimGrunt') {
+                        burstSmallPower(spriteX, spriteY, 5); // 250 Power
+                        burstLargePower(spriteX, spriteY, 2); // 200 Power
+                        console.log('aim grunt release Power'); // Total Power Release: 450
+                    }
+                    else if (sprite.name === 'rotateGrunt') {
+                        burstSmallPower(spriteX, spriteY, 3); // 150 Power
+                        burstLargePower(spriteX, spriteY, 5); // 500 Power
+                        console.log('rotateGrunt release Power'); // Total Power Release: 650
+                    }
+                    else if (sprite.name === 'straightGrunt') {
+                        burstSmallPower(spriteX, spriteY, 2); // 100 Power
+                        burstLargePower(spriteX, spriteY, 1); // 100 Power
+                        console.log('straightGrunt release Power'); // Total Power Release: 200
+                    }
                     var spriteDeathAnim = gruntDeaths.getFirstExists(false);
                     spriteDeathAnim.reset(sprite.body.x + sprite.body.halfWidth, sprite.body.y + sprite.body.halfHeight);
                     spriteDeathAnim.body.velocity.y = sprite.body.velocity.y;
@@ -466,15 +570,15 @@
                 }
             }
             if (straightGruntWeapons.length > 0) {
-                for (var i = 0; i < straightGruntWeapons.length; i++) {
+                for (var j = 0; j < straightGruntWeapons.length; j++) {
                     //straightGruntWeapons[straightGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
-                    straightGruntWeapons[i].killAll();
+                    straightGruntWeapons[j].killAll();
                 }
             }
             if (rotateGruntWeapons.length > 0) {
-                for (var i = 0; i < rotateGruntWeapons.length; i++) {
+                for (var k = 0; k < rotateGruntWeapons.length; k++) {
                     //rotateGruntWeapons[rotateGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
-                    rotateGruntWeapons[i].killAll();
+                    rotateGruntWeapons[k].killAll();
 
                 }
             }
@@ -492,6 +596,7 @@
             newGrunt.body.immovable = true;
             newGrunt.body.velocity.x = velocityX;
             newGrunt.body.velocity.y = velocityY;
+            newGrunt.name = 'aimGrunt';
 
             var newWeapon = game.add.weapon(30, weaponName);
             newWeapon.bulletSpeed = enemyWeapon.gruntBulletSpeed;
@@ -516,6 +621,7 @@
             newGrunt.body.immovable = true;
             newGrunt.body.velocity.x = velocityX;
             newGrunt.body.velocity.y = velocityY;
+            newGrunt.name = 'rotateGrunt';
 
             var newWeapon = game.add.weapon(80, weaponName);
             newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
@@ -550,6 +656,7 @@
             newGrunt.body.immovable = true;
             newGrunt.body.velocity.x = velocityX;
             newGrunt.body.velocity.y = velocityY;
+            newGrunt.name = 'straightGrunt';
 
             var newWeapon = game.add.weapon(30, weaponName);
             newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
@@ -636,23 +743,6 @@
             return gruntGroup.getChildIndex(grunt);
         }
 
-        /*function killAllEnemyBullets() {
-            if (aimGruntWeapons.length > 0) {
-                for (var i = 0; i < aimGruntWeapons.length; i++) {
-                    aimGruntWeapons[i].killAll();
-                }
-            }
-            if (straightGruntWeapons.length > 0) {
-                for (var j = 0; j < straightGruntWeapons.length; i++) {
-                    straightGruntWeapons[j].killAll();
-                }
-            }
-            if (rotateGruntWeapons.length > 0) {
-                for (var k = 0; k < rotateGruntWeapons.length; i++) {
-                    rotateGruntWeapons[k].killAll();
-                }
-            }
-        }*/
         // Stage 01
         function startStageOne() {
             switch(gameTimer) {
@@ -836,7 +926,7 @@
                     //tween fade into black and then out to new background
                     break;
                 default:
-                    console.log(gameTimer);
+                    //console.log(gameTimer);
                     break;
             }
         }
