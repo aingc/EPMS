@@ -20,6 +20,16 @@
             game.load.image('stage01BG', './assets/Background/stage01blue.png');
             game.load.image('sanaeHurtbox', './assets/Player/playerHurtbox.png');
             game.load.image('sanae', './assets/Player/playerStand.png');
+            game.load.image('yuyuko', './assets/Boss/yuyuko.png');
+            game.load.image('butterflyRed', './assets/Boss/bossBullets/butterflyRED.png');
+            game.load.image('butterflyYellow', './assets/Boss/bossBullets/butterflyYELLOW.png');
+            game.load.image('butterflyGreen', './assets/Boss/bossBullets/butterflyGREEN.png');
+            game.load.image('butterflyCyan', './assets/Boss/bossBullets/butterflyCYAN.png');
+            game.load.image('butterflyBlue', './assets/Boss/bossBullets/butterflyBLUE.png');
+            game.load.image('butterflyPurple', './assets/Boss/bossBullets/butterflyPURPLE.png');
+            game.load.image('butterflyBlack', './assets/Boss/bossBullets/butterflyBLACK.png');
+            game.load.image('yuyukoBullet', './assets/Boss/bossBullets/yuyukoBullet.png');
+            game.load.image('yuyukoOrb', './assets/Boss/bossBullets/yuyukoOrb.png');
             game.load.image('aimGruntShot', './assets/Enemy/enemyBullets/aimGruntShot.png');
             game.load.image('straightGruntShot', './assets/Enemy/enemyBullets/straightGruntShot.png');
             game.load.image('rotateGruntShot', './assets/Enemy/enemyBullets/rotateGruntShot.png');
@@ -117,6 +127,7 @@
         var straightGrunts;
         var rotateGrunts;
         var gruntDeaths;
+        var yuyukoBoss;
 
         // Enemy Weapons
         var aimGruntWeapons = [];
@@ -144,22 +155,6 @@
             playerDeathSFX.volume = 0.8;
 
             // Items
-            /*
-            smallP = game.add.group();
-            smallP.enableBody = true;
-            smallP.physicsBodyType = Phaser.Physics.ARCADE;
-            smallP.createMultiple(200, 'smallP');
-            smallP.setAll('anchor.x', 0.5);
-            smallP.setAll('anchor.y', 0.5);
-            smallP.setAll('body.velocity.y', 200);
-            largeP = game.add.group();
-            largeP.enableBody = true;
-            largeP.physicsBodyType = Phaser.Physics.ARCADE;
-            largeP.createMultiple(200, 'largeP');
-            largeP.setAll('anchor.x', 0.5);
-            largeP.setAll('anchor.y', 0.5);
-            largeP.setAll('body.velocity.y', 200);
-            */
             smallP = game.add.emitter(0, 0, 200);
             smallP.enableBody = true;
             smallP.physicsBodyType = Phaser.Physics.ARCADE;
@@ -169,7 +164,7 @@
             });
             smallP.makeParticles('smallP');
             smallP.gravity = 200;
-            smallP.setXSpeed(-5, 5);
+            smallP.setXSpeed(-10, 10);
             //smallP.setYSpeed(100);
 
             largeP = game.add.emitter(0, 0, 200);
@@ -275,6 +270,7 @@
             powerText.render = function() {
                 powerText.text = 'Power: ' + Math.max(playerStats.power, 0);
             };
+
                 // Game Over
             gameOverText = game.add.text(game.world.centerX, game.world.centerY, 'GAME OVER\nTo restart, refresh the browser', { font: '30px Arial', fill: '#fff'});
             gameOverText.anchor.setTo(0.5);
@@ -387,7 +383,7 @@
                 fadeInPOCline.start();
             }
             checkPOClineBreach();
-            startStageOne();
+            //startStageOne();
             if (bgm.volume <= 0) {
                 bgm.stop();
                 console.log('bgm stopped');
@@ -675,6 +671,10 @@
             playerSprite.damage(bullet.damageAmount);
             lifeText.render();
             playerDeathSFX.play();
+            playerStats.power -= 150;
+            if (playerStats.power < 0) {
+                playerStats.power = 0;
+            }
             player.body.x = 250;
             player.body.y = 443.5;
             playerSprite.body.x = 243;
@@ -860,6 +860,12 @@
             return gruntGroup.getChildIndex(grunt);
         }
 
+        // Boss - Yuyuko Saigyouji
+        function spawnYuyuko() {
+            yuyukoBoss = this.add.sprite((game.world.width/2), 1, 'sanaeHurtbox');
+            yuyukoBoss.health = 1000;
+            yuyukoBoss.anchor.setTo(0.5);
+        }
         // Stage 01
         function startStageOne() {
             switch(gameTimer) {
