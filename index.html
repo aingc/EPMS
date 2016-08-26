@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <script type="text/javascript" src="js/library/phaser.js"></script>
+    <script src="js/library/HealthBar.standalone.js"></script>
     <title>Title</title>
 </head>
 <body>
@@ -49,6 +50,7 @@
             game.load.audio('bossDeath', './assets/Audio/SFX/bossExplosion.wav');
             game.load.audio('bomb', './assets/Audio/SFX/SpecialSS.wav');
             game.load.audio('stage01BGM', './assets/Audio/BGM/EndOfSpring.mp3');
+            game.load.audio('yuyukoBGM', './assets/Audio/BGM/BloomNobly.mp3');
         }
 
         var playerStats = {
@@ -58,7 +60,7 @@
             power: 0,
             weaponName: 'SINGLE SHOT'
         };
-        var playerPower = 0;
+        const bossMaxHP = 50;
         var lifeText;
         var powerText;
         var weaponText;
@@ -113,7 +115,6 @@
         var bgm;
         var enemyDeathSFX;
         var playerDeathSFX;
-        var bossDeathSFX;
         var smallP;
         var largeP;
         var singleShot;
@@ -130,8 +131,11 @@
         var rotateGrunts;
         var gruntDeaths;
         var yuyukoBoss;
+        var bossDeathSFX;
         var bossSpawned = false;
         var yuyukoFloatUp = false;
+        var bossHPbar;
+        var bossText;
 
         // Enemy Weapons
         var aimGruntWeapons = [];
@@ -378,8 +382,8 @@
             /*displayPOCLine();
             checkPOClineBreach();*/
 
-            //startStageOne();
-            /*if (bgm.volume <= 0) {
+            /*startStageOne();
+            if (bgm.volume <= 0) {
                 bgm.stop();
                 console.log('bgm stopped');
             }*/
@@ -393,6 +397,9 @@
                 game.physics.arcade.overlap(doubleShot.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
                 game.physics.arcade.overlap(waveShotLT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
                 game.physics.arcade.overlap(waveShotRT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
+
+                // boss shoot (check hp)
+                checkYuyukoHealth();
             }
             gameTimer++;
         }
@@ -894,25 +901,31 @@
             game.physics.arcade.enable(yuyukoBoss);
             yuyukoBoss.anchor.setTo(0.5);
             yuyukoBoss.body.setSize(137, 185, 185, 0);
-            yuyukoBoss.health = 50;
+            yuyukoBoss.health = bossMaxHP; //60
             yuyukoBoss.damageAmount = 1;
-            //yuyukoBoss.body.immovable = true;
+            yuyukoBoss.body.immovable = true;
             yuyukoBoss.bringToTop();
             bossSpawned = true;
+            bossHPbar = new HealthBar(game, {x: 256, y: 25, width: 500, height: 10});
+            bossText = game.add.text(10, 3, 'Yuyuko Saigyouji', { font: '12px Arial', fill: '#ff4500' });
+            bossText.render = function(newText) {
+                bossText.text = newText;
+            };
+
 
         }
 
         function yuyukoFloat() {
             if (!yuyukoFloatUp) {
-                yuyukoBoss.body.velocity.y = 20;
+                yuyukoBoss.body.velocity.y = 10;
             }
             else if (yuyukoFloatUp) {
-                yuyukoBoss.body.velocity.y = -20;
+                yuyukoBoss.body.velocity.y = -10;
             }
             if (yuyukoBoss.body.y <= 12) {
                 yuyukoFloatUp = false;
             }
-            else if (yuyukoBoss.body.y >= 32) {
+            else if (yuyukoBoss.body.y >= 20) {
                 yuyukoFloatUp = true;
             }
         }
@@ -921,6 +934,11 @@
             if (bullet !== undefined) {
                 bullet.kill();
                 sprite.damage(bullet.damageAmount);
+                //update health here
+                console.log(sprite.health);
+                var tempCurrentHPratio = (sprite.health/bossMaxHP) * 100;
+                console.log(tempCurrentHPratio);
+                bossHPbar.setPercent(tempCurrentHPratio);
                 if (sprite.health <= 0) {
                     var spriteDeathAnim = gruntDeaths.getFirstExists(false);
                     spriteDeathAnim.reset(sprite.body.x + sprite.body.halfWidth, sprite.body.y + sprite.body.halfHeight);
@@ -929,6 +947,29 @@
                     spriteDeathAnim.play('gruntDeathExplode', 30, false, true);
                     bossDeathSFX.play();
                 }
+            }
+        }
+
+        function checkYuyukoHealth() {
+            if (yuyukoBoss.health <= 60 && yuyukoBoss.health >= 51) {
+                // 1st transition here
+            }
+            else if (yuyukoBoss.health <= 50 && yuyukoBoss.health >= 41) {
+                bossText.render('Yuyuko Saigyouji: \'Nether Sign\' Passage to the Netherworld');
+            }
+            else if (yuyukoBoss.health <= 40 && yuyukoBoss.health >= 31) {
+                // 2nd transition here
+                bossText.render('Yuyuko Saigyouji');
+            }
+            else if (yuyukoBoss.health <= 30 && yuyukoBoss.health >= 21) {
+                bossText.render('Yuyuko Saigyouji: \'Ghost Sign\' Flight of the Butterflies');
+            }
+            else if (yuyukoBoss.health <= 20 && yuyukoBoss.health >= 11) {
+                // 3rd transition here
+                bossText.render('Yuyuko Saigyouji');
+            }
+            else if (yuyukoBoss.health <= 10) {
+                bossText.render('Yuyuko Saigyouji: \'Bloom Nobly\' Border of Life');
             }
         }
         // Stage 01
