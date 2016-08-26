@@ -12,8 +12,8 @@
         var game = new Phaser.Game(512, 600, Phaser.AUTO, 'container', {
             preload: preload,
             create: create,
-            update: update
-            //render: render
+            update: update,
+            render: render
         });
 
         function preload() {
@@ -46,6 +46,7 @@
             game.load.spritesheet('gruntDeathExplode', './assets/Enemy/gruntDeathExplosion2.png', 64, 65);
             game.load.audio('enemyDeath', './assets/Audio/SFX/enemyDeath.wav');
             game.load.audio('playerDeath', './assets/Audio/SFX/playerExplosion.wav');
+            game.load.audio('bossDeath', './assets/Audio/SFX/bossExplosion.wav');
             game.load.audio('bomb', './assets/Audio/SFX/SpecialSS.wav');
             game.load.audio('stage01BGM', './assets/Audio/BGM/EndOfSpring.mp3');
         }
@@ -112,6 +113,7 @@
         var bgm;
         var enemyDeathSFX;
         var playerDeathSFX;
+        var bossDeathSFX;
         var smallP;
         var largeP;
         var singleShot;
@@ -128,6 +130,8 @@
         var rotateGrunts;
         var gruntDeaths;
         var yuyukoBoss;
+        var bossSpawned = false;
+        var yuyukoFloatUp = false;
 
         // Enemy Weapons
         var aimGruntWeapons = [];
@@ -136,23 +140,21 @@
         var rotateGruntWeaponDIS = [];
         var straightGruntWeapons = [];
         var straightGruntWeaponDIS = [];
-        var aimGruntExplosionDIS = [];
-        var rotateGruntExplosionDIS = [];
-        var straightGruntExplosionDIS = [];
-
 
         // weapon.Bullets is a group
         function create() {
             // Scrolling Background
-            bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
+            //bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
 
             // Music and SFX
-            bgm = game.add.audio('stage01BGM');
-            bgm.play();
+            //bgm = game.add.audio('stage01BGM');
+            //bgm.play();
             enemyDeathSFX = game.add.audio('enemyDeath');
             enemyDeathSFX.volume = 0.8;
             playerDeathSFX = game.add.audio('playerDeath');
             playerDeathSFX.volume = 0.8;
+            bossDeathSFX = game.add.audio('bossDeath');
+
 
             // Items
             smallP = game.add.emitter(0, 0, 200);
@@ -306,12 +308,13 @@
             });
 
             //spawnStraightGrunt(400, 100, 0, 0, 'gruntStraightRed', 'straightGruntShot', false);
+            spawnYuyuko();
         }
 
         function update() {
             playerSprite.sendToBack();
             playerHurtbox.sendToBack();
-            bg.sendToBack();
+            //bg.sendToBack();
             smallP.callAll('bringToTop');
             largeP.callAll('bringToTop');
             aimGrunts.callAll('bringToTop');
@@ -361,7 +364,7 @@
             gruntRotateFire(rotateGrunts, rotateGruntWeapons, rotateGruntWeaponDIS);
 
             // Scroll the bg
-            bg.tilePosition.y += 2;
+            //bg.tilePosition.y += 2;
 
             // Check game over
             if (!playerHurtbox.alive && gameOverText.visible === false) {
@@ -371,22 +374,25 @@
                 fadeInGameOver.start();
             }
 
-            // Display POC Line at the beginning
-            if (playerHurtbox.alive && pocLineText.visible === false && pocLine.visible === false && gameTimer <= 250) {
-                pocLineText.visible = true;
-                pocLine.visible = true;
-                fadeInPOCtext = game.add.tween(pocLineText);
-                fadeInPOCline = game.add.tween(pocLine);
-                fadeInPOCtext.to({alpha: 0}, 500, Phaser.Easing.Quintic.Out, false, 0, 5, true);
-                fadeInPOCline.to({alpha: 0.2}, 500, Phaser.Easing.Quintic.Out, false, 0, 5, true);
-                fadeInPOCtext.start();
-                fadeInPOCline.start();
-            }
-            checkPOClineBreach();
+            // Display POC Line at the beginning and check for breaches
+            /*displayPOCLine();
+            checkPOClineBreach();*/
+
             //startStageOne();
-            if (bgm.volume <= 0) {
+            /*if (bgm.volume <= 0) {
                 bgm.stop();
                 console.log('bgm stopped');
+            }*/
+            if (bossSpawned) {
+                // boss movement
+                yuyukoFloat();
+
+                // boss collision
+                game.physics.arcade.overlap(playerHurtbox, yuyukoBoss, playerCollide, null, this);
+                game.physics.arcade.overlap(singleShot.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
+                game.physics.arcade.overlap(doubleShot.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
+                game.physics.arcade.overlap(waveShotLT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
+                game.physics.arcade.overlap(waveShotRT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
             }
             gameTimer++;
         }
@@ -394,6 +400,7 @@
         // DEBUGGING
         function render() {
             game.debug.body(playerHurtbox);
+            game.debug.body(yuyukoBoss);
             aimGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             straightGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             rotateGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
@@ -549,6 +556,20 @@
             largeP.start(true, 0, null, amount);
         }
 
+        // Display POC Line
+        function displayPOCLine() {
+            if (playerHurtbox.alive && pocLineText.visible === false && pocLine.visible === false && gameTimer <= 250) {
+                pocLineText.visible = true;
+                pocLine.visible = true;
+                fadeInPOCtext = game.add.tween(pocLineText);
+                fadeInPOCline = game.add.tween(pocLine);
+                fadeInPOCtext.to({alpha: 0}, 500, Phaser.Easing.Quintic.Out, false, 0, 5, true);
+                fadeInPOCline.to({alpha: 0.2}, 500, Phaser.Easing.Quintic.Out, false, 0, 5, true);
+                fadeInPOCtext.start();
+                fadeInPOCline.start();
+            }
+        }
+
         // check POC Line Breach
         function checkPOClineBreach() {
             if (playerHurtbox.alive && playerSprite.body.y <= game.world.centerY/2) {
@@ -623,6 +644,7 @@
         function bulletCollide(bullet, sprite) {
             if (bullet !== undefined) {
                 bullet.kill();
+                console.log(bullet.key);
                 sprite.damage(bullet.damageAmount);
                 if (sprite.health <= 0) {
                     var spriteX = sprite.body.x;
@@ -648,6 +670,12 @@
                     spriteDeathAnim.body.velocity.y = sprite.body.velocity.y;
                     spriteDeathAnim.alpha = 1;
                     spriteDeathAnim.play('gruntDeathExplode', 30, false, true);
+                    /*if (sprite.key === 'yuyuko') {
+                        // add some big score for boss kill
+                        // play big explosion sound
+                        bossDeathSFX.play();
+                        return;
+                    }*/
                     enemyDeathSFX.play();
                 }
             }
@@ -862,9 +890,46 @@
 
         // Boss - Yuyuko Saigyouji
         function spawnYuyuko() {
-            yuyukoBoss = this.add.sprite((game.world.width/2), 1, 'sanaeHurtbox');
-            yuyukoBoss.health = 1000;
+            yuyukoBoss = game.add.sprite((game.world.width/2), 140, 'yuyuko'); //512 x 256
+            game.physics.arcade.enable(yuyukoBoss);
             yuyukoBoss.anchor.setTo(0.5);
+            yuyukoBoss.body.setSize(137, 185, 185, 0);
+            yuyukoBoss.health = 50;
+            yuyukoBoss.damageAmount = 1;
+            //yuyukoBoss.body.immovable = true;
+            yuyukoBoss.bringToTop();
+            bossSpawned = true;
+
+        }
+
+        function yuyukoFloat() {
+            if (!yuyukoFloatUp) {
+                yuyukoBoss.body.velocity.y = 20;
+            }
+            else if (yuyukoFloatUp) {
+                yuyukoBoss.body.velocity.y = -20;
+            }
+            if (yuyukoBoss.body.y <= 12) {
+                yuyukoFloatUp = false;
+            }
+            else if (yuyukoBoss.body.y >= 32) {
+                yuyukoFloatUp = true;
+            }
+        }
+
+        function yuyukoShotCollide(sprite, bullet) {
+            if (bullet !== undefined) {
+                bullet.kill();
+                sprite.damage(bullet.damageAmount);
+                if (sprite.health <= 0) {
+                    var spriteDeathAnim = gruntDeaths.getFirstExists(false);
+                    spriteDeathAnim.reset(sprite.body.x + sprite.body.halfWidth, sprite.body.y + sprite.body.halfHeight);
+                    spriteDeathAnim.body.velocity.y = sprite.body.velocity.y;
+                    spriteDeathAnim.alpha = 1;
+                    spriteDeathAnim.play('gruntDeathExplode', 30, false, true);
+                    bossDeathSFX.play();
+                }
+            }
         }
         // Stage 01
         function startStageOne() {
