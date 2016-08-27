@@ -13,8 +13,8 @@
         var game = new Phaser.Game(512, 600, Phaser.AUTO, 'container', {
             preload: preload,
             create: create,
-            update: update
-            //render: render
+            update: update,
+            render: render
         });
 
         function preload() {
@@ -43,6 +43,7 @@
             game.load.image('singlePrimary', './assets/Player/playerShotA.png');
             game.load.image('doublePrimary', './assets/Player/playerShotB.png');
             game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
+            game.load.image('playerBomb', './assets/Player/bomb.png');
             game.load.image('smallP', './assets/Player/PowerSmall.png');
             game.load.image('largeP', './assets/Player/PowerLarge.png');
             game.load.spritesheet('gruntDeathExplode', './assets/Enemy/gruntDeathExplosion2.png', 64, 65);
@@ -67,6 +68,7 @@
         var lifeText;
         var powerText;
         var weaponText;
+        var bombText;
         var gameOverText;
         var pocLineText;
         var pocLine;
@@ -127,7 +129,7 @@
         var doubleShot;
         var waveShotLT;
         var waveShotRT;
-        var playerBombs;
+        var playerBombs; // Divine Wind: Forgotten Cyclone
         var playerHurtbox;
         var playerSprite;
         var cursors;
@@ -307,38 +309,39 @@
             bossTrnznThree.physicsBodyType = Phaser.Physics.ARCADE;*/
 
             // Game Text
-                // Lives
-            lifeText = game.add.text(10, game.world.height - 30, 'Lives: ' + playerSprite.health, { font: '20px Arial', fill: '#00FF00' });
-            lifeText.render = function() {
-                lifeText.text = 'Lives: ' + Math.max(playerSprite.health, 0);
-            };
-            powerText = game.add.text(10, game.world.height - 60, 'Power: ' + playerStats.power, { font: '20px Arial', fill: '#00FF00' });
+                // Power
+            powerText = game.add.text(10, game.world.height - 90, 'Power: ' + playerStats.power, {font: '20px Arial', fill: '#00FF00'});
             powerText.render = function() {
                 powerText.text = 'Power: ' + Math.max(playerStats.power, 0);
             };
+                // Bombs
+            bombText = game.add.text(10, game.world.height - 60, 'Bombs: ' + playerStats.bomb, {font: '20px Arial', fill: '#00FF00'});
+                // Lives
+            lifeText = game.add.text(10, game.world.height - 30, 'Lives: ' + playerSprite.health, {font: '20px Arial', fill: '#00FF00'});
+            lifeText.render = function() {
+                lifeText.text = 'Lives: ' + Math.max(playerSprite.health, 0);
+            };
 
                 // Game Over
-            gameOverText = game.add.text(game.world.centerX, game.world.centerY, 'GAME OVER\nTo restart, refresh the browser', { font: '30px Arial', fill: '#fff'});
+            gameOverText = game.add.text(game.world.centerX, game.world.centerY, 'GAME OVER\nTo restart, refresh the browser', {font: '30px Arial', fill: '#fff'});
             gameOverText.anchor.setTo(0.5);
             gameOverText.visible = false;
 
                 // Weapon
-            weaponText = game.add.text(300, game.world.height - 40, playerStats.weaponName, { font: '30px Arial', fill: '#00FFFF' });
+            weaponText = game.add.text(300, game.world.height - 40, playerStats.weaponName, {font: '30px Arial', fill: '#00FFFF'});
             weaponText.render = function() {
                 weaponText.text = playerStats.weaponName;
             };
 
-                // POC Line Text
+                // Point of Collection Line
+                    // POC Line Text
             pocLineText = game.add.text(game.world.centerX, game.world.centerY/2 - 10, 'Point of Collection', {font: '25px Arial', fill: '#00FF00'});
             pocLineText.anchor.setTo(0.5);
             pocLineText.visible = false;
-                // POC Line
-            pocLine = game.add.text(0, game.world.centerY/2, '____________________________________________________________________________________________', { font: '20px Arial', fill: '#FF0000'});
+                    // POC Line
+            pocLine = game.add.text(0, game.world.centerY/2, '____________________________________________________________________________________________', {font: '20px Arial', fill: '#FF0000'});
             pocLine.anchor.setTo(0.5);
             pocLine.visible = false;
-
-                // Point of Collection Line
-            // implement here
 
             // Enemy Death
             gruntDeaths = game.add.group();
@@ -351,6 +354,7 @@
                explode.animations.add('gruntDeathExplode');
             });
 
+            spawnStraightGrunt(350, 200, 0, 0, 'gruntStraightRed', 'straightGruntShot');
             //spawnYuyuko();
         }
 
@@ -396,12 +400,20 @@
             game.physics.arcade.overlap(waveShotLT.bullets, rotateGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(waveShotRT.bullets, rotateGrunts, bulletCollide, null, this);
 
-            // Check Enemy Bullet Collisions/Overlap
-            if (!playerStats.bombActive) {
-                checkGruntBulletOverlap(aimGruntWeapons);
-                checkGruntBulletOverlap(straightGruntWeapons);
-                checkGruntBulletOverlap(rotateGruntWeapons);
-            }
+            // Check Enemy Bullet Collisions/Overlap with player and bomb if active
+            checkGruntBulletOverlap(aimGruntWeapons);
+            checkGruntBulletOverlap(straightGruntWeapons);
+            checkGruntBulletOverlap(rotateGruntWeapons);
+
+            // Vacuum Grunt Bullets when bomb is active
+            bombVacuum();
+
+            // Check bomb's cyclone collision with bullets
+            /*if (playerStats.bombActive) {
+                game.physics.arcade.overlap(playerBombs.getChildAt(playerBombs.length - 1).body, aimGrunts, bombCycloneCollide, null, this);
+                game.physics.arcade.overlap(playerBombs.getChildAt(playerBombs.length - 1).body, straightGrunts, bombCycloneCollide, null, this);
+                game.physics.arcade.overlap(playerBombs.getChildAt(playerBombs.length - 1).body, rotateGrunts, bombCycloneCollide, null, this);
+            }*/
 
             // Check Power Item Collisions
             game.physics.arcade.overlap(playerSprite, smallP, playerPowerUp, null, this);
@@ -458,6 +470,7 @@
             gameTimer++;
             if (playerStats.bombActive) {
                 playerStats.bombTimer++;
+                playerBombs.callAll('bringToTop');
                 // turn bombActive flag to false again at a certain time when bomb sound clip is over
             }
 
@@ -466,13 +479,14 @@
         // DEBUGGING
         function render() {
             game.debug.body(playerHurtbox);
-            game.debug.body(yuyukoBoss);
+            //game.debug.body(yuyukoBoss);
             aimGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             straightGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             rotateGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             singleShot.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
             doubleShot.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
             bossTransition.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.8)');
+            playerBombs.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.8)');
         }
 
         function renderGroup(child, strColor) {
@@ -608,26 +622,64 @@
                 // render bomb text here!
                 playerStats.bombActive = true;
                 playerBombSFX.play();
-                playerBombSFX.onStop.add(function() {
-                    playerStats.bomb--;
-                    console.log(playerStats.bombTimer);
-                    playerStats.bombActive = false;
-                    playerStats.bombTimer = 0;
-
-                }, this);
-                /*var newBomb = playerBombs.create(playerHurtbox.body.x, playerHurtbox.body.y, 'bomb');
+                // Do sanaeCard tween
+                var newBomb = playerBombs.create(playerHurtbox.body.x, playerHurtbox.body.y, 'playerBomb');
                 newBomb.anchor.setTo(0.5);
                 newBomb.outOfBoundsKill = true;
                 newBomb.checkWorldBounds = true;
                 newBomb.damageAmount = 24;
                 newBomb.body.immovable = true;
                 newBomb.body.velocity.x = 0;
-                newBomb.body.velocity.y = 0;*/
+                newBomb.body.velocity.y = 0;
+                newBomb.body.setCircle(9, -1, -2);
+                game.physics.arcade.moveToXY(newBomb, game.world.centerX, game.world.centerY);
+                playerBombSFX.onStop.add(function() {
+                    playerStats.bomb--;
+                    console.log(playerStats.bombTimer);
+                    playerStats.bombActive = false;
+                    playerStats.bombTimer = 0;
+                    newBomb.kill();
+                }, this);
             }
-
-            // Check POC Line
         }
 
+        function bombVacuum() {
+            if (playerStats.bombActive) {
+                //var tempBombSprite = playerBombs.getChildAt(playerBombs.length - 1);
+                var tempBombSprite = playerBombs.getFirstExists(true);
+                if (aimGruntWeapons.length > 0) {
+                    for (var i = 0; i < aimGruntWeapons.length; i++) {
+                            aimGruntWeapons[i].bullets.forEachAlive(function (aimGruntBullet) {
+                                game.physics.arcade.moveToObject(aimGruntBullet, tempBombSprite.body, 400);
+                            }, this);
+                    }
+                }
+                if (straightGruntWeapons.length > 0) {
+                    for (var j = 0; j < straightGruntWeapons.length; j++) {
+                            straightGruntWeapons[j].bullets.forEachAlive(function (straightGruntBullet) {
+                                game.physics.arcade.moveToObject(straightGruntBullet, tempBombSprite.body, 400);
+                            }, this);
+                    }
+                }
+                if (rotateGruntWeapons.length > 0) {
+                    for (var k = 0; k < rotateGruntWeapons.length; k++) {
+                            rotateGruntWeapons[k].bullets.forEachAlive(function (rotateGruntBullet) {
+                                game.physics.arcade.moveToObject(rotateGruntBullet, tempBombSprite.body, 400);
+                            }, this);
+                    }
+                }
+                bossTransition.forEachAlive(function(butterfly) {
+                    game.physics.arcade.moveToObject(butterfly, tempBombSprite.body, 600);
+                }, this);
+            }
+        }
+
+        function bombCycloneCollide(bullet, bomb) {
+            console.log('bullet absorbed');
+            bullet.kill();
+            // add to score here and render
+            // maybe some sound?
+        }
         function burstSmallPower(spriteX, spriteY, spriteYvel, amount) {
             smallP.x = spriteX;
             smallP.y = spriteY;
@@ -767,8 +819,17 @@
             if (gruntWeaponArray.length > 0) {
                 for (var i = 0; i < gruntWeaponArray.length; i++) {
                     //since its a group vs sprite, then first argument to gruntShotCollide is the sprite
-                    if (gruntWeaponArray[i] != null) {
+                    if (gruntWeaponArray[i] != null && !playerStats.bombActive) {
                         game.physics.arcade.overlap(gruntWeaponArray[i].bullets, playerHurtbox, gruntShotCollide, null, this);
+                    }
+                    else if (gruntWeaponArray[i] != null && playerStats.bombActive) {
+                        console.log('checking');
+                        //for (var j = 0; j < gruntWeaponArray[i].bullets.length; j++) {
+                            gruntWeaponArray[i].bullets.forEachAlive(function(specificBullet) {
+                                console.log('inside');
+                                game.physics.arcade.overlap(specificBullet, playerBombs, bombCycloneCollide, null, this);
+                            }, this);
+                        //}
                     }
                 }
             }
