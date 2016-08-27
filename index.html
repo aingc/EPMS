@@ -59,7 +59,9 @@
             graze: 0,
             bomb: 2,
             power: 0,
-            weaponName: 'SINGLE SHOT'
+            weaponName: 'SINGLE SHOT',
+            bombTimer: 0,
+            bombActive: false
         };
         const bossMaxHP = 60;
         var lifeText;
@@ -107,7 +109,8 @@
             singleShotBulletFireRate: 90,
             singleShotBulletAngleOffSet: 90,
             singleShotDamage: 4,
-            doubleShotDamage: 6
+            doubleShotDamage: 6,
+            waveShotDamage: 1
         };
         var rotateGruntTimers = [];
         var counterClockwiseShootID = [];
@@ -117,16 +120,20 @@
         var bossBGM;
         var enemyDeathSFX;
         var playerDeathSFX;
+        var playerBombSFX;
         var smallP;
         var largeP;
         var singleShot;
         var doubleShot;
         var waveShotLT;
         var waveShotRT;
+        var playerBombs;
         var playerHurtbox;
         var playerSprite;
         var cursors;
         var fireButton;
+        var bombButton;
+        var bombSignal;
         var focusButton;
         var aimGrunts;
         var straightGrunts;
@@ -141,7 +148,6 @@
         var bossHPbar;
         var bossText;
         var bossTransition;
-        var killedBossPhase = 0;
         /*var bossTrnznTwo;
         var bossTrnznThree;*/
         var trnznData = {
@@ -169,10 +175,13 @@
             //bossBGM = game.add.audio('stage01BossBGM');*/
 
             enemyDeathSFX = game.add.audio('enemyDeath');
-            enemyDeathSFX.volume = 0.8;
+            enemyDeathSFX.volume = 0.7;
             playerDeathSFX = game.add.audio('playerDeath');
-            playerDeathSFX.volume = 0.8;
+            playerDeathSFX.volume = 0.7;
+            playerBombSFX = game.add.audio('bomb');
+            playerBombSFX.volume = 0.7
             bossDeathSFX = game.add.audio('bossDeath');
+            bossDeathSFX.volume = 1.1;
 
 
             // Items
@@ -228,16 +237,20 @@
             waveShotLT.bulletSpeed = 850;
             waveShotLT.fireRate = 180;
             waveShotLT.bullets.forEach(function(bullet) {
-                bullet.damageAmount = 2;
+                bullet.damageAmount = weaponStats.waveShotDamage;
             });
             waveShotRT = game.add.weapon(30, 'spreadPrimary');
             waveShotRT.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
             waveShotRT.bulletSpeed = 850;
             waveShotRT.fireRate = 180;
             waveShotRT.bullets.forEach(function(bullet) {
-                bullet.damageAmount = 2;
+                bullet.damageAmount = weaponStats.waveShotDamage;
             });
 
+            // Bomb
+            playerBombs = game.add.group();
+            playerBombs.enableBody = true;
+            playerBombs.physicsBodyType = Phaser.Physics.ARCADE;
 
             // Enemies
             aimGrunts = game.add.group();
@@ -279,6 +292,7 @@
             // Setting Controls
             cursors = this.input.keyboard.createCursorKeys();
             fireButton = this.input.keyboard.addKey(Phaser.KeyCode.Z);
+            bombButton = this.input.keyboard.addKey(Phaser.KeyCode.X);
             focusButton = this.input.keyboard.addKey(Phaser.KeyCode.SHIFT);
 
             // Boss Groups
@@ -337,7 +351,7 @@
                explode.animations.add('gruntDeathExplode');
             });
 
-            spawnYuyuko();
+            //spawnYuyuko();
         }
 
         function update() {
@@ -356,30 +370,38 @@
 
             // Collision Checking
                 // aimGrunts
-            game.physics.arcade.overlap(playerHurtbox, aimGrunts, playerCollide, null, this);
+            if (!playerStats.bombActive) {
+                game.physics.arcade.overlap(playerHurtbox, aimGrunts, playerCollide, null, this);
+            }
             game.physics.arcade.overlap(singleShot.bullets, aimGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(doubleShot.bullets, aimGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(waveShotLT.bullets, aimGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(waveShotRT.bullets, aimGrunts, bulletCollide, null, this);
 
                 // straightGrunts
-            game.physics.arcade.overlap(playerHurtbox, straightGrunts, playerCollide, null, this);
+            if (!playerStats.bombActive) {
+                game.physics.arcade.overlap(playerHurtbox, straightGrunts, playerCollide, null, this);
+            }
             game.physics.arcade.overlap(singleShot.bullets, straightGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(doubleShot.bullets, straightGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(waveShotLT.bullets, straightGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(waveShotRT.bullets, straightGrunts, bulletCollide, null, this);
 
                 // rotateGrunts
-            game.physics.arcade.overlap(playerHurtbox, rotateGrunts, playerCollide, null, this);
+            if (!playerStats.bombActive) {
+                game.physics.arcade.overlap(playerHurtbox, rotateGrunts, playerCollide, null, this);
+            }
             game.physics.arcade.overlap(singleShot.bullets, rotateGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(doubleShot.bullets, rotateGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(waveShotLT.bullets, rotateGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(waveShotRT.bullets, rotateGrunts, bulletCollide, null, this);
 
             // Check Enemy Bullet Collisions/Overlap
-            checkGruntBulletOverlap(aimGruntWeapons);
-            checkGruntBulletOverlap(straightGruntWeapons);
-            checkGruntBulletOverlap(rotateGruntWeapons);
+            if (!playerStats.bombActive) {
+                checkGruntBulletOverlap(aimGruntWeapons);
+                checkGruntBulletOverlap(straightGruntWeapons);
+                checkGruntBulletOverlap(rotateGruntWeapons);
+            }
 
             // Check Power Item Collisions
             game.physics.arcade.overlap(playerSprite, smallP, playerPowerUp, null, this);
@@ -434,6 +456,11 @@
                 yuyukoBoss.moveDown();
             }
             gameTimer++;
+            if (playerStats.bombActive) {
+                playerStats.bombTimer++;
+                // turn bombActive flag to false again at a certain time when bomb sound clip is over
+            }
+
         }
 
         // DEBUGGING
@@ -577,6 +604,27 @@
                 weaponText.render();
             }
 
+            if (playerHurtbox.alive && bombButton.isDown && playerStats.bomb > 0 && !playerStats.bombActive) {
+                // render bomb text here!
+                playerStats.bombActive = true;
+                playerBombSFX.play();
+                playerBombSFX.onStop.add(function() {
+                    playerStats.bomb--;
+                    console.log(playerStats.bombTimer);
+                    playerStats.bombActive = false;
+                    playerStats.bombTimer = 0;
+
+                }, this);
+                /*var newBomb = playerBombs.create(playerHurtbox.body.x, playerHurtbox.body.y, 'bomb');
+                newBomb.anchor.setTo(0.5);
+                newBomb.outOfBoundsKill = true;
+                newBomb.checkWorldBounds = true;
+                newBomb.damageAmount = 24;
+                newBomb.body.immovable = true;
+                newBomb.body.velocity.x = 0;
+                newBomb.body.velocity.y = 0;*/
+            }
+
             // Check POC Line
         }
 
@@ -654,6 +702,7 @@
                 playerStats.power = 0;
             }
         }
+
         function playerCollide(player, enemy) {
             console.log('enemy collide');
             player.damage(enemy.damageAmount);
@@ -753,7 +802,6 @@
             newGrunt.body.immovable = true;
             newGrunt.body.velocity.x = velocityX;
             newGrunt.body.velocity.y = velocityY;
-            newGrunt.name = 'aimGrunt';
 
             var newWeapon = game.add.weapon(30, weaponName);
             newWeapon.bulletSpeed = enemyWeapon.gruntBulletSpeed;
@@ -778,7 +826,6 @@
             newGrunt.body.immovable = true;
             newGrunt.body.velocity.x = velocityX;
             newGrunt.body.velocity.y = velocityY;
-            newGrunt.name = 'rotateGrunt';
 
             var newWeapon = game.add.weapon(80, weaponName);
             newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
@@ -813,7 +860,6 @@
             newGrunt.body.immovable = true;
             newGrunt.body.velocity.x = velocityX;
             newGrunt.body.velocity.y = velocityY;
-            newGrunt.name = 'straightGrunt';
 
             var newWeapon = game.add.weapon(30, weaponName);
             newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
