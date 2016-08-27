@@ -13,12 +13,13 @@
         var game = new Phaser.Game(512, 600, Phaser.AUTO, 'container', {
             preload: preload,
             create: create,
-            update: update,
-            render: render
+            update: update
+            //render: render
         });
 
         function preload() {
             game.load.image('stage01BG', './assets/Background/stage01blue.png');
+            game.load.image('stage01Boss', './assets/Background/stage01BossBG.png');
             game.load.image('sanaeHurtbox', './assets/Player/playerHurtbox.png');
             game.load.image('sanae', './assets/Player/playerStand.png');
             game.load.image('yuyuko', './assets/Boss/yuyuko.png');
@@ -50,7 +51,7 @@
             game.load.audio('bossDeath', './assets/Audio/SFX/bossExplosion.wav');
             game.load.audio('bomb', './assets/Audio/SFX/SpecialSS.wav');
             game.load.audio('stage01BGM', './assets/Audio/BGM/EndOfSpring.mp3');
-            game.load.audio('yuyukoBGM', './assets/Audio/BGM/BloomNobly.mp3');
+            game.load.audio('stage01BossBGM', './assets/Audio/BGM/BloomNobly.mp3');
         }
 
         var playerStats = {
@@ -60,7 +61,7 @@
             power: 0,
             weaponName: 'SINGLE SHOT'
         };
-        const bossMaxHP = 50;
+        const bossMaxHP = 60;
         var lifeText;
         var powerText;
         var weaponText;
@@ -113,6 +114,7 @@
 
         var bg;
         var bgm;
+        var bossBGM;
         var enemyDeathSFX;
         var playerDeathSFX;
         var smallP;
@@ -130,12 +132,23 @@
         var straightGrunts;
         var rotateGrunts;
         var gruntDeaths;
+
+        // Boss Variables
         var yuyukoBoss;
         var bossDeathSFX;
         var bossSpawned = false;
         var yuyukoFloatUp = false;
         var bossHPbar;
         var bossText;
+        var bossTransition;
+        var killedBossPhase = 0;
+        /*var bossTrnznTwo;
+        var bossTrnznThree;*/
+        var trnznData = {
+            trnznRandX: 0,
+            trnznRandY: 0,
+            trnznTimer: 0
+        };
 
         // Enemy Weapons
         var aimGruntWeapons = [];
@@ -148,11 +161,13 @@
         // weapon.Bullets is a group
         function create() {
             // Scrolling Background
-            //bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
+            /*bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
 
             // Music and SFX
             //bgm = game.add.audio('stage01BGM');
             //bgm.play();
+            //bossBGM = game.add.audio('stage01BossBGM');*/
+
             enemyDeathSFX = game.add.audio('enemyDeath');
             enemyDeathSFX.volume = 0.8;
             playerDeathSFX = game.add.audio('playerDeath');
@@ -266,6 +281,17 @@
             fireButton = this.input.keyboard.addKey(Phaser.KeyCode.Z);
             focusButton = this.input.keyboard.addKey(Phaser.KeyCode.SHIFT);
 
+            // Boss Groups
+            bossTransition = game.add.group();
+            bossTransition.enableBody = true;
+            bossTransition.physicsBodyType = Phaser.Physics.ARCADE;
+            /*bossTrnznTwo = game.add.group();
+            bossTrnznTwo.enableBody = true;
+            bossTrnznTwo.physicsBodyType = Phaser.Physics.ARCADE;
+            bossTrnznThree = game.add.group();
+            bossTrnznThree.enableBody = true;
+            bossTrnznThree.physicsBodyType = Phaser.Physics.ARCADE;*/
+
             // Game Text
                 // Lives
             lifeText = game.add.text(10, game.world.height - 30, 'Lives: ' + playerSprite.health, { font: '20px Arial', fill: '#00FF00' });
@@ -311,7 +337,6 @@
                explode.animations.add('gruntDeathExplode');
             });
 
-            //spawnStraightGrunt(400, 100, 0, 0, 'gruntStraightRed', 'straightGruntShot', false);
             spawnYuyuko();
         }
 
@@ -397,9 +422,16 @@
                 game.physics.arcade.overlap(doubleShot.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
                 game.physics.arcade.overlap(waveShotLT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
                 game.physics.arcade.overlap(waveShotRT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
+                game.physics.arcade.overlap(playerHurtbox, bossTransition, playerCollide, null, this);
+                /*game.physics.arcade.overlap(playerHurtbox, bossTrnznTwo, playerCollide, null, this);
+                game.physics.arcade.overlap(playerHurtbox, bossTrnznThree, playerCollide, null, this);*/
+                // check bomb collision with each butterfly transition
+                // check bomb collision with yuyukoBoss
 
-                // boss shoot (check hp)
-                checkYuyukoHealth();
+                // boss shoot (check hp, and change spell card accordingly)
+                checkYuyukoHealthAndShoot();
+                bossTransition.callAll('bringToTop');
+                yuyukoBoss.moveDown();
             }
             gameTimer++;
         }
@@ -413,6 +445,7 @@
             rotateGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             singleShot.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
             doubleShot.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
+            bossTransition.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.8)');
         }
 
         function renderGroup(child, strColor) {
@@ -615,6 +648,12 @@
             powerText.render();
         }
 
+        function playerPowerNerf() {
+            playerStats.power -= 150;
+            if (playerStats.power < 0) {
+                playerStats.power = 0;
+            }
+        }
         function playerCollide(player, enemy) {
             console.log('enemy collide');
             player.damage(enemy.damageAmount);
@@ -627,23 +666,9 @@
             playerSprite.body.y = 428;
             console.log(player.health);
             console.log(playerSprite.health);
-            if (aimGruntWeapons.length > 0) {
-                for (var i = 0; i < aimGruntWeapons.length; i++) {
-                    aimGruntWeapons[i].killAll();
-                }
-            }
-            if (straightGruntWeapons.length > 0) {
-                for (var j = 0; j < straightGruntWeapons.length; j++) {
-                    //straightGruntWeapons[straightGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
-                    straightGruntWeapons[j].killAll();
-                }
-            }
-            if (rotateGruntWeapons.length > 0) {
-                for (var k = 0; k < rotateGruntWeapons.length; k++) {
-                    //rotateGruntWeapons[rotateGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
-                    rotateGruntWeapons[k].killAll();
-
-                }
+            clearGruntBullets();
+            if (bossSpawned) {
+                clearYuyukoBullets();
             }
         }
 
@@ -706,34 +731,14 @@
             playerSprite.damage(bullet.damageAmount);
             lifeText.render();
             playerDeathSFX.play();
-            playerStats.power -= 150;
-            if (playerStats.power < 0) {
-                playerStats.power = 0;
-            }
+            playerPowerNerf();
             player.body.x = 250;
             player.body.y = 443.5;
             playerSprite.body.x = 243;
             playerSprite.body.y = 428;
             console.log(player.health);
             console.log(playerSprite.health);
-            if (aimGruntWeapons.length > 0) {
-                for (var i = 0; i < aimGruntWeapons.length; i++) {
-                    aimGruntWeapons[i].killAll();
-                }
-            }
-            if (straightGruntWeapons.length > 0) {
-                for (var j = 0; j < straightGruntWeapons.length; j++) {
-                    //straightGruntWeapons[straightGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
-                    straightGruntWeapons[j].killAll();
-                }
-            }
-            if (rotateGruntWeapons.length > 0) {
-                for (var k = 0; k < rotateGruntWeapons.length; k++) {
-                    //rotateGruntWeapons[rotateGruntWeaponDIS[i]].bullets.callAllExists('killAll', true);
-                    rotateGruntWeapons[k].killAll();
-
-                }
-            }
+            clearGruntBullets();
             // start gameover state here
         }
 
@@ -891,12 +896,55 @@
             }
         }
 
+        function clearGruntBullets() {
+            if (aimGruntWeapons.length > 0) {
+                for (var i = 0; i < aimGruntWeapons.length; i++) {
+                    aimGruntWeapons[i].killAll();
+                }
+            }
+            if (straightGruntWeapons.length > 0) {
+                for (var j = 0; j < straightGruntWeapons.length; j++) {
+                    straightGruntWeapons[j].killAll();
+                }
+            }
+            if (rotateGruntWeapons.length > 0) {
+                for (var k = 0; k < rotateGruntWeapons.length; k++) {
+                    rotateGruntWeapons[k].killAll();
+
+                }
+            }
+        }
         function checkGruntKill(grunt, gruntGroup) {
             return gruntGroup.getChildIndex(grunt);
         }
 
         // Boss - Yuyuko Saigyouji
+        function getRandomTransitions(tempMin, tempMax) {
+            var min = Math.ceil(tempMin);
+            var max = Math.floor(tempMax);
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function getRandButterflyPoztn(tempMinX, tempMinY, tempMaxX, tempMaxY) {
+            trnznData.trnznRandX = getRandomTransitions(tempMinX, tempMaxX);
+            trnznData.trnznRandY = getRandomTransitions(tempMinY, tempMaxY);
+        }
+
+        function bossSpawnButterfly(x, y, xVel, yVel, spriteName, groupName) {
+            var newButterfly = groupName.create(x, y, spriteName);
+            newButterfly.anchor.setTo(0.5);
+            newButterfly.outOfBoundsKill = true;
+            newButterfly.checkWorldBounds = true;
+            newButterfly.damageAmount = 1;
+            newButterfly.body.immovable = true;
+            newButterfly.body.velocity.x = xVel;
+            newButterfly.body.velocity.y = yVel;
+            newButterfly.body.setCircle(6, 7.4, 10.5); // Perfect hitbox now
+            newButterfly.angle = 90;
+        }
+
         function spawnYuyuko() {
+            //bossBGM.play(true);
             yuyukoBoss = game.add.sprite((game.world.width/2), 140, 'yuyuko'); //512 x 256
             game.physics.arcade.enable(yuyukoBoss);
             yuyukoBoss.anchor.setTo(0.5);
@@ -911,7 +959,6 @@
             bossText.render = function(newText) {
                 bossText.text = newText;
             };
-
 
         }
 
@@ -950,9 +997,54 @@
             }
         }
 
-        function checkYuyukoHealth() {
+        function checkYuyukoHealthAndShoot() {
+            if (bossText.text === 'Yuyuko Saigyouji' && yuyukoBoss.health <= 50 && yuyukoBoss.health >= 41) {
+                clearYuyukoBullets();
+                console.log('cleared');
+                // pause here
+            }
+            else if (bossText.text === 'Yuyuko Saigyouji: \'Nether Sign\' Passage to the Netherworld' && yuyukoBoss.health <= 40 && yuyukoBoss.health >= 31) {
+                // clear spell card's bullets here
+                clearYuyukoBullets();
+                console.log('cleared');
+
+                // PUT PAUSE HERE BEFORE NEXT TRANSITION/SPELL CARD
+            }
+            else if (bossText.text === 'Yuyuko Saigyouji' && yuyukoBoss.health <= 30 && yuyukoBoss.health >= 21) {
+                clearYuyukoBullets();
+                console.log('cleared');
+                // put pause here
+            }
+            else if (bossText.text === 'Yuyuko Saigyouji: \'Ghost Sign\' Flight of the Butterflies'
+                    && yuyukoBoss.health <= 20 && yuyukoBoss.health >= 11) {
+                // clear spell card's bullets here
+                clearYuyukoBullets();
+                console.log('cleared');
+                // PUT PAUSE HERE BEFORE NEXT TRANSITION/SPELL CARD
+            }
+            else if (bossText.text === 'Yuyuko Saigyouji' && yuyukoBoss.health <= 10) {
+                clearYuyukoBullets();
+                console.log('cleared');
+                // pause here
+            }
+
             if (yuyukoBoss.health <= 60 && yuyukoBoss.health >= 51) {
                 // 1st transition here
+                if (trnznData.trnznTimer % 17 === 0) {
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                }
+                bossTransition.callAll('bringToTop');
             }
             else if (yuyukoBoss.health <= 50 && yuyukoBoss.health >= 41) {
                 bossText.render('Yuyuko Saigyouji: \'Nether Sign\' Passage to the Netherworld');
@@ -960,6 +1052,32 @@
             else if (yuyukoBoss.health <= 40 && yuyukoBoss.health >= 31) {
                 // 2nd transition here
                 bossText.render('Yuyuko Saigyouji');
+                if (trnznData.trnznTimer % 17 === 0) {
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
+                    getRandButterflyPoztn(0, 0, 512, 600);
+                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
+                }
             }
             else if (yuyukoBoss.health <= 30 && yuyukoBoss.health >= 21) {
                 bossText.render('Yuyuko Saigyouji: \'Ghost Sign\' Flight of the Butterflies');
@@ -967,10 +1085,34 @@
             else if (yuyukoBoss.health <= 20 && yuyukoBoss.health >= 11) {
                 // 3rd transition here
                 bossText.render('Yuyuko Saigyouji');
+                if (trnznData.trnznTimer % 17 === 0) {
+                    for (var i = 0; i < 3; i++) {
+                        getRandButterflyPoztn(0, 0, 512, 600);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyRed', bossTransition);
+                        getRandButterflyPoztn(0, 0, 512, 600);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyPurple', bossTransition);
+                        getRandButterflyPoztn(0, 0, 512, 600);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyBlue', bossTransition);
+                        getRandButterflyPoztn(0, 0, 512, 600);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
+                        getRandButterflyPoztn(0, 0, 512, 600);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyBlack', bossTransition);
+                    }
+                }
             }
             else if (yuyukoBoss.health <= 10) {
                 bossText.render('Yuyuko Saigyouji: \'Bloom Nobly\' Border of Life');
             }
+            else if (yuyukoBoss.health <= 0) {
+                // clear screen
+                clearYuyukoBullets();
+                //ending screen here
+            }
+            trnznData.trnznTimer++;
+        }
+
+        function clearYuyukoBullets() {
+            bossTransition.callAllExists('kill', true);
         }
         // Stage 01
         function startStageOne() {
