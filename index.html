@@ -78,7 +78,11 @@
         var gameTimer = 0;
         const playerPhysicsStats = {
             normalVelocity: 275,
-            focusVelocity: 150
+            focusVelocity: 150,
+            playerHurtboxXrespawn: 250,
+            playerHurtboxYrespawn: 443.5,
+            playerSpriteXrespawn: 243,
+            playerSpriteYrespawn: 428
         };
         const enemyStats = {
             aimGruntHP: 10,
@@ -831,10 +835,10 @@
                 playerStats.bomb = 2;
                 bombText.render();
             }
-            player.body.x = 250;
-            player.body.y = 443.5;
-            playerSprite.body.x = 243;
-            playerSprite.body.y = 428;
+            player.body.x = 250; //250
+            player.body.y = 443.5 + 100; //443.5
+            playerSprite.body.x = 243; //243
+            playerSprite.body.y = 428 + 100; //428
             console.log(player.health);
             console.log(playerSprite.health);
             clearGruntBullets();
@@ -916,10 +920,10 @@
                 playerStats.bomb = 2;
                 bombText.render();
             }
-            player.body.x = 250;
-            player.body.y = 443.5;
-            playerSprite.body.x = 243;
-            playerSprite.body.y = 428;
+            player.body.x = 250; //250
+            player.body.y = 443.5 + 100; //443.5
+            playerSprite.body.x = 243; //243
+            playerSprite.body.y = 428 + 100; //428
             console.log(player.health);
             console.log(playerSprite.health);
             clearGruntBullets();
