@@ -44,6 +44,7 @@
             game.load.image('doublePrimary', './assets/Player/playerShotB.png');
             game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
             game.load.image('playerBomb', './assets/Player/bomb.png');
+            game.load.image('bombExplode', './assets/Player/bombExplode.png');
             game.load.image('smallP', './assets/Player/PowerSmall.png');
             game.load.image('largeP', './assets/Player/PowerLarge.png');
             game.load.image('playerCard', './assets/Player/sanaeCard.png');
@@ -144,6 +145,7 @@
         var waveShotLT;
         var waveShotRT;
         var playerBombs; // Divine Wind: Forgotten Cyclone
+        var bombDispersal;
         var playerHurtbox;
         var playerSprite;
         var playerCard;
@@ -268,6 +270,9 @@
             playerBombs = game.add.group();
             playerBombs.enableBody = true;
             playerBombs.physicsBodyType = Phaser.Physics.ARCADE;
+            bombDispersal = game.add.group();
+            bombDispersal.enableBody = true;
+            bombDispersal.physicsBodyType = Phaser.Physics.ARCADE;
 
             // Enemies
             aimGrunts = game.add.group();
@@ -394,6 +399,7 @@
             aimGrunts.callAll('bringToTop');
             straightGrunts.callAll('bringToTop');
             rotateGrunts.callAll('bringToTop');
+            bombDispersal.callAll('bringToTop');
             playerHurtbox.body.velocity.x = 0;
             playerHurtbox.body.velocity.y = 0;
             playerSprite.body.velocity.x = 0;
@@ -408,6 +414,7 @@
             game.physics.arcade.overlap(doubleShot.bullets, aimGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(waveShotLT.bullets, aimGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(waveShotRT.bullets, aimGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(bombDispersal, aimGrunts, bulletCollide, null, this);
 
                 // straightGrunts
             if (!playerStats.bombActive) {
@@ -417,6 +424,7 @@
             game.physics.arcade.overlap(doubleShot.bullets, straightGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(waveShotLT.bullets, straightGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(waveShotRT.bullets, straightGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(bombDispersal, straightGrunts, bulletCollide, null, this);
 
                 // rotateGrunts
             if (!playerStats.bombActive) {
@@ -426,6 +434,7 @@
             game.physics.arcade.overlap(doubleShot.bullets, rotateGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(waveShotLT.bullets, rotateGrunts, bulletCollide, null, this);
             game.physics.arcade.overlap(waveShotRT.bullets, rotateGrunts, bulletCollide, null, this);
+            game.physics.arcade.overlap(bombDispersal, rotateGrunts, bulletCollide, null, this);
 
             // Check Enemy Bullet Collisions/Overlap with player and bomb if active
             checkGruntBulletOverlap(aimGruntWeapons);
@@ -683,8 +692,52 @@
                     console.log(playerStats.bombTimer);
                     playerStats.bombActive = false;
                     playerStats.bombTimer = 0;
+                    clearGruntBullets();
+                    clearYuyukoBullets();
+                    bombExplode(newBomb.body.x, newBomb.body.y);
                     newBomb.kill();
                 }, this);
+            }
+        }
+
+        function bombExplode(bombX, bombY) {
+            console.log('bomb dispersed');
+            for (var i = 0; i < 8; i++) {
+                var bombPart = bombDispersal.create(bombX, bombY, 'bombExplode');
+                bombPart.anchor.setTo(0.5);
+                bombPart.outOfBoundsKill = true;
+                bombPart.checkWorldBounds = true;
+                bombPart.damageAmount = 24;
+                bombPart.body.immovable = true;
+                bombPart.name = 'bombDispersal';
+                if (i === 0) {
+                    bombPart.body.velocity.y = -800;
+                }
+                else if (i === 1) {
+                    bombPart.body.velocity.x = 800;
+                    bombPart.body.velocity.y = -800;
+                }
+                else if (i === 2) {
+                    bombPart.body.velocity.x = 800;
+                }
+                else if (i === 3) {
+                    bombPart.body.velocity.x = 800;
+                    bombPart.body.velocity.y = 800;
+                }
+                else if (i === 4) {
+                    bombPart.body.velocity.y = 800;
+                }
+                else if (i === 5) {
+                    bombPart.body.velocity.x = -800;
+                    bombPart.body.velocity.y = 800;
+                }
+                else if (i === 6) {
+                    bombPart.body.velocity.x = -800;
+                }
+                else if (i === 7) {
+                    bombPart.body.velocity.x = -800;
+                    bombPart.body.velocity.y = -800;
+                }
             }
         }
 
@@ -848,10 +901,10 @@
         }
 
         // when sprite dies, its bullets linger and will still deal damage
+        // checks if player bullet collides with grunt
         function bulletCollide(bullet, sprite) {
             if (bullet !== undefined) {
                 bullet.kill();
-                console.log(bullet.key);
                 sprite.damage(bullet.damageAmount);
                 if (sprite.health <= 0) {
                     var spriteX = sprite.body.x;
@@ -895,20 +948,23 @@
                     //since its a group vs sprite, then first argument to gruntShotCollide is the sprite
                     if (gruntWeaponArray[i] != null && !playerStats.bombActive) {
                         game.physics.arcade.overlap(gruntWeaponArray[i].bullets, playerHurtbox, gruntShotCollide, null, this);
+                        // check collision with bomb explosion and enemy bullets
+                        if (bombDispersal.length > 0) {
+                            gruntWeaponArray[i].bullets.forEach(function(specificBullet) {
+                                game.physics.arcade.overlap(specificBullet, bombDispersal, bombCycloneCollide, null, this);
+                            }, this);
+                        }
                     }
                     else if (gruntWeaponArray[i] != null && playerStats.bombActive) {
-                        console.log('checking');
-                        //for (var j = 0; j < gruntWeaponArray[i].bullets.length; j++) {
                             gruntWeaponArray[i].bullets.forEachAlive(function(specificBullet) {
-                                console.log('inside');
                                 game.physics.arcade.overlap(specificBullet, playerBombs, bombCycloneCollide, null, this);
                             }, this);
-                        //}
                     }
                 }
             }
         }
 
+        // if grunt bullet collides with player
         function gruntShotCollide(player, bullet) {
             console.log('grunt bullet collide');
             player.damage(bullet.damageAmount);
