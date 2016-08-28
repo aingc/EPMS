@@ -43,6 +43,9 @@
             game.load.image('singlePrimary', './assets/Player/playerShotA.png');
             game.load.image('doublePrimary', './assets/Player/playerShotB.png');
             game.load.image('spreadPrimary', './assets/Player/secondaryShotALT.png');
+            game.load.image('focusPrimary', './assets/Player/secondaryShot.png');
+            game.load.image('focusPrimaryLT', './assets/Player/playerShotBLeft.png');
+            game.load.image('focusPrimaryRT', './assets/Player/playerShotBRight.png');
             game.load.image('playerBomb', './assets/Player/bomb.png');
             game.load.image('bombExplode', './assets/Player/bombExplode.png');
             game.load.image('smallP', './assets/Player/PowerSmall.png');
@@ -61,10 +64,11 @@
             score: 0,
             graze: 0,
             bomb: 2,
-            power: 4000, // 0
+            power: 1000, // 0
             weaponName: 'SINGLE SHOT',
             bombTimer: 0,
-            bombActive: false
+            bombActive: false,
+            focusActive: false,
         };
         const bossMaxHP = 60;
         var lifeText;
@@ -136,20 +140,29 @@
         var rotateGruntTimers = [];
         var counterClockwiseShootID = [];
 
+        // Sound
         var bg;
         var bgm;
         var bossBGM;
         var enemyDeathSFX;
         var playerDeathSFX;
         var playerBombSFX;
+
+        // Items
         var smallP;
         var largeP;
+
+        // Weapons
         var singleShot;
         var doubleShot;
         var waveShotLT;
         var waveShotRT;
+        var focusShotLT;
+        var focusShotRT;
         var playerBombs; // Divine Wind: Forgotten Cyclone
         var bombDispersal;
+
+        // Player
         var playerHurtbox;
         var playerSprite;
         var playerCard;
@@ -158,6 +171,8 @@
         var fireButton;
         var bombButton;
         var focusButton;
+
+        // Enemy Data
         var aimGrunts;
         var straightGrunts;
         var rotateGrunts;
@@ -254,7 +269,7 @@
                bullet.damageAmount = 5;
             });
 
-            // Wave Shot
+            // Wave Shot, Spread Shot, and Max Power
             waveShotLT = game.add.weapon(30, 'spreadPrimary');
             waveShotLT.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
             waveShotLT.bulletSpeed = weaponStats.waveShotBulletSpeed;
@@ -269,6 +284,22 @@
             waveShotRT.bullets.forEach(function(bullet) {
                 bullet.damageAmount = weaponStats.waveShotDamage;
             });
+
+            // Focus Shot when wave, spread, or max power are equipped
+            focusShotLT = game.add.weapon(30, 'focusPrimary');
+            focusShotLT.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            focusShotLT.bulletSpeed = weaponStats.spreadShotBulletSpeed;
+            focusShotLT.fireRate = weaponStats.doubleShotBulletFireRate;
+            focusShotLT.bullets.forEach(function(bullet) {
+                bullet.damageAmount = weaponStats.waveShotDamage;
+            }, this);
+            focusShotRT = game.add.weapon(30, 'focusPrimary');
+            focusShotRT.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            focusShotRT.bulletSpeed = weaponStats.spreadShotBulletSpeed;
+            focusShotRT.fireRate = weaponStats.doubleShotBulletFireRate;
+            focusShotRT.bullets.forEach(function(bullet) {
+                bullet.damageAmount = weaponStats.waveShotDamage;
+            }, this);
 
             // Bomb
             playerBombs = game.add.group();
@@ -312,8 +343,10 @@
             // -- Weapon on player
             singleShot.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
             doubleShot.trackSprite(playerSprite, 0, -(playerSprite.height/2 + 27));
-            waveShotLT.trackSprite(playerSprite, -50, -(playerSprite.height/2 + 27));
-            waveShotRT.trackSprite(playerSprite, 50, -(playerSprite.height/2 + 27));
+            waveShotLT.trackSprite(playerSprite, -50, -(playerSprite.height/2));
+            waveShotRT.trackSprite(playerSprite, 50, -(playerSprite.height/2));
+            focusShotLT.trackSprite(playerSprite, -30, -(playerSprite.height/2));
+            focusShotRT.trackSprite(playerSprite, 30, -(playerSprite.height/2));
 
             // Setting Controls
             cursors = this.input.keyboard.createCursorKeys();
@@ -382,7 +415,6 @@
                 explode.scale.setTo(1.5, 1.5);
             });
 
-            //spawnStraightGrunt(350, 200, 0, 0, 'spreadPrimary', 'straightGruntShot');
             //spawnYuyuko();
         }
 
@@ -460,7 +492,7 @@
             gruntRotateFire(rotateGrunts, rotateGruntWeapons, rotateGruntWeaponDIS);
 
             // Scroll the bg
-            bg.tilePosition.y += 2;
+            bg.tilePosition.y += 1;
 
             // Check game over
             if (!playerHurtbox.alive && gameOverText.visible === false) {
@@ -520,6 +552,8 @@
             doubleShot.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
             waveShotLT.bullets.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             waveShotRT.bullets.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
+            focusShotLT.bullets.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
+            focusShotRT.bullets.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             bossTransition.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.8)');
             playerBombs.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.8)');
         }
@@ -625,6 +659,8 @@
             // Check amount of P and then fire appropriate weapon
             if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 0 && playerStats.power < 500) {
                 singleShot.fire();
+                playerStats.weaponName = 'SINGLE SHOT';
+                weaponText.render();
                 // Update weapon text: 'SINGLE SHOT'
             }
             // focus fire single shot here
@@ -643,7 +679,7 @@
                 // Update weapon text: 'TRIPLE SHOT'
             }
             // focus fire triple shot here
-            else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 2000 && playerStats.power < 3000) {
+            else if (playerHurtbox.alive && fireButton.isDown && !focusButton.isDown && playerStats.power >= 2000 && playerStats.power < 3000) {
                 // Update weapon text: 'WAVE SHOT'
                 singleShot.fire();
                 doubleShot.fire();
@@ -671,7 +707,26 @@
                 playerStats.weaponName = 'WAVE SHOT';
                 weaponText.render();
             }
-            else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 3000 && playerStats.power < 4000) {
+            else if (playerHurtbox.alive && fireButton.isDown && focusButton.isDown && playerStats.power >= 2000 && playerStats.power < 3000) {
+                // Focus 'WAVE SHOT'
+                singleShot.fire();
+                doubleShot.fire();
+
+                focusShotLT.bullets.forEachAlive(function(bullet) {
+                    bullet.damageAmount = weaponStats.waveShotDamage + 1;
+                    bullet.body.setSize(30, 13, -9, 9);
+                }, this);
+                focusShotRT.bullets.forEachAlive(function(bullet) {
+                    bullet.damageAmount = weaponStats.waveShotDamage + 1;
+                    bullet.body.setSize(30, 13, -9, 9);
+                }, this);
+
+                focusShotLT.fire();
+                focusShotRT.fire();
+                playerStats.weaponName = 'WAVE SHOT';
+                weaponText.render();
+            }
+            else if (playerHurtbox.alive && fireButton.isDown && !focusButton.isDown && playerStats.power >= 3000 && playerStats.power < 4000) {
                  // Update weapon text: 'SPREAD SHOT'
                 singleShot.fire();
                 doubleShot.fire();
@@ -699,7 +754,26 @@
                 playerStats.weaponName = 'SPREAD SHOT';
                 weaponText.render();
             }
-            else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 4000) {
+            else if (playerHurtbox.alive && fireButton.isDown && focusButton.isDown && playerStats.power >= 3000 && playerStats.power < 4000) {
+                // Focus 'SPREAD SHOT'
+                singleShot.fire();
+                doubleShot.fire();
+
+                focusShotLT.bullets.forEachAlive(function(bullet) {
+                    bullet.damageAmount = weaponStats.spreadShotDamage + 2;
+                    bullet.body.setSize(30, 13, -9, 9);
+                }, this);
+                focusShotRT.bullets.forEachAlive(function(bullet) {
+                    bullet.damageAmount = weaponStats.spreadShotDamage + 2;
+                    bullet.body.setSize(30, 13, -9, 9);
+                }, this);
+
+                focusShotLT.fire();
+                focusShotRT.fire();
+                playerStats.weaponName = 'SPREAD SHOT';
+                weaponText.render();
+            }
+            else if (playerHurtbox.alive && fireButton.isDown && !focusButton.isDown && playerStats.power >= 4000) {
                 singleShot.fire();
                 doubleShot.fire();
 
@@ -730,6 +804,24 @@
 
                 waveShotLT.fire();
                 waveShotRT.fire();
+                playerStats.weaponName = 'MAX POWER';
+                weaponText.render();
+            }
+            else if (playerHurtbox.alive && fireButton.isDown && focusButton.isDown && playerStats.power >= 4000) {
+                singleShot.fire();
+                doubleShot.fire();
+
+                focusShotLT.bullets.forEachAlive(function(bullet) {
+                    bullet.damageAmount = weaponStats.maxPowerBulletDamage + 3;
+                    bullet.body.setSize(30, 13, -9, 9);
+                }, this);
+                focusShotRT.bullets.forEachAlive(function(bullet) {
+                    bullet.damageAmount = weaponStats.maxPowerBulletDamage + 3;
+                    bullet.body.setSize(30, 13, -9, 9);
+                }, this);
+
+                focusShotLT.fire();
+                focusShotRT.fire();
                 playerStats.weaponName = 'MAX POWER';
                 weaponText.render();
             }
@@ -917,7 +1009,11 @@
                 console.log('largeP collect');
                 playerStats.power += 100;
             }
-            if (playerStats.power >= 500 && playerStats.power < 1000 && playerStats.weaponName !== 'DOUBLE SHOT') {
+            if (playerStats.power >= 0 && playerStats.power < 500 && playerStats.weaponName !== 'SINGLE SHOT') {
+                playerStats.weaponName = 'SINGLE SHOT';
+                weaponText.render();
+            }
+            else if (playerStats.power >= 500 && playerStats.power < 1000 && playerStats.weaponName !== 'DOUBLE SHOT') {
                 playerStats.weaponName = 'DOUBLE SHOT';
                 weaponText.render();
             }
