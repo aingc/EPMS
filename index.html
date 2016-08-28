@@ -61,7 +61,7 @@
             score: 0,
             graze: 0,
             bomb: 2,
-            power: 0,
+            power: 4000, // 0
             weaponName: 'SINGLE SHOT',
             bombTimer: 0,
             bombActive: false
@@ -127,7 +127,11 @@
             spreadShotBulletSpeed: 900,
             spreadShotBulletFireRate: 70,
             spreadShotBulletAngleVariance: 10,
-            spreadShotDamage: 2
+            spreadShotDamage: 2,
+            maxPowerBulletSpeed: 800,
+            maxPowerBulletFireRate: 80,
+            maxPowerBulletDamage: 5,
+            bombDamage: 48
         };
         var rotateGruntTimers = [];
         var counterClockwiseShootID = [];
@@ -378,7 +382,7 @@
                 explode.scale.setTo(1.5, 1.5);
             });
 
-            //spawnStraightGrunt(350, 200, 0, 0, 'gruntStraightRed', 'straightGruntShot');
+            //spawnStraightGrunt(350, 200, 0, 0, 'spreadPrimary', 'straightGruntShot');
             //spawnYuyuko();
         }
 
@@ -514,6 +518,8 @@
             rotateGrunts.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             singleShot.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
             doubleShot.bullets.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.4)');
+            waveShotLT.bullets.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
+            waveShotRT.bullets.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             bossTransition.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.8)');
             playerBombs.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.8)');
         }
@@ -629,7 +635,7 @@
                 // Update weapon text: 'DOUBLE SHOT'
             }
             // focus fire double shot here
-            else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 1000 && playerStats.power < 1750) {
+            else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 1000 && playerStats.power < 2000) {
                 singleShot.fire();
                 doubleShot.fire();
                 playerStats.weaponName = 'TRIPLE SHOT';
@@ -637,38 +643,94 @@
                 // Update weapon text: 'TRIPLE SHOT'
             }
             // focus fire triple shot here
-            else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 1750 && playerStats.power < 2500) {
-                // Update weapon text: 'MAX POWER'
+            else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 2000 && playerStats.power < 3000) {
+                // Update weapon text: 'WAVE SHOT'
                 singleShot.fire();
                 doubleShot.fire();
 
                 waveShotLT.bulletSpeed = weaponStats.waveShotBulletSpeed;
+                waveShotLT.bulletAngleVariance = 0;
                 waveShotLT.fireRate = weaponStats.waveShotBulletFireRate;
+                waveShotLT.bullets.forEachAlive(function(bullet) {
+                    bullet.damageAmount = weaponStats.waveShotDamage;
+                    bullet.body.setSize(60, 13, -23, 24);
+                    bullet.scale.setTo(1, 1);
+                }, this);
 
                 waveShotRT.bulletSpeed = weaponStats.waveShotBulletSpeed;
+                waveShotRT.bulletAngleVariance = 0;
                 waveShotRT.fireRate = weaponStats.waveShotBulletFireRate;
+                waveShotRT.bullets.forEachAlive(function(bullet) {
+                    bullet.damageAmount = weaponStats.waveShotDamage;
+                    bullet.body.setSize(60, 13, -23, 24);
+                    bullet.scale.setTo(1, 1);
+                }, this);
 
                 waveShotLT.fire();
                 waveShotRT.fire();
                 playerStats.weaponName = 'WAVE SHOT';
                 weaponText.render();
             }
-            else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 2500) {
-                 // Update weapon text: 'MAX POWER'
+            else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 3000 && playerStats.power < 4000) {
+                 // Update weapon text: 'SPREAD SHOT'
                 singleShot.fire();
                 doubleShot.fire();
 
                 waveShotLT.bulletSpeed = weaponStats.spreadShotBulletSpeed;
                 waveShotLT.bulletAngleVariance = 20;
                 waveShotLT.fireRate = weaponStats.spreadShotBulletFireRate;
+                waveShotLT.bullets.forEachAlive(function(bullet) {
+                    bullet.damageAmount = weaponStats.spreadShotDamage;
+                    bullet.body.setSize(60, 13, -23, 24);
+                    bullet.scale.setTo(1, 1);
+                }, this);
 
                 waveShotRT.bulletSpeed = weaponStats.spreadShotBulletSpeed;
                 waveShotRT.bulletAngleVariance = 20;
                 waveShotRT.fireRate = weaponStats.spreadShotBulletFireRate;
+                waveShotRT.bullets.forEachAlive(function(bullet) {
+                    bullet.damageAmount = weaponStats.spreadShotDamage;
+                    bullet.body.setSize(60, 13, -23, 24);
+                    bullet.scale.setTo(1, 1);
+                }, this);
 
                 waveShotLT.fire();
                 waveShotRT.fire();
                 playerStats.weaponName = 'SPREAD SHOT';
+                weaponText.render();
+            }
+            else if (playerHurtbox.alive && fireButton.isDown && playerStats.power >= 4000) {
+                singleShot.fire();
+                doubleShot.fire();
+
+                waveShotLT.bulletSpeed = weaponStats.maxPowerBulletSpeed;
+                waveShotLT.bulletAngleVariance = 20;
+                waveShotLT.fireRate = weaponStats.maxPowerBulletFireRate;
+                waveShotLT.bullets.forEachAlive(function(bullet) {
+                    bullet.damageAmount = weaponStats.maxPowerBulletDamage;
+                    bullet.body.setSize(60, 13, -23, 24);
+                    bullet.scale.setTo(1.5, 1.8);
+                }, this);
+
+                waveShotRT.bulletSpeed = weaponStats.maxPowerBulletSpeed;
+                waveShotRT.bulletAngleVariance = 20;
+                waveShotRT.fireRate = weaponStats.maxPowerBulletFireRate;
+                waveShotRT.bullets.forEachAlive(function(bullet) {
+                    bullet.damageAmount = weaponStats.maxPowerBulletDamage;
+                    bullet.body.setSize(60, 13, -23, 24);
+                    bullet.scale.setTo(1.5, 1.8);
+                }, this);
+                /*waveShotLT.bulletSpeed = weaponStats.spreadShotBulletSpeed;
+                waveShotLT.bulletAngleVariance = 20;
+                waveShotLT.fireRate = weaponStats.spreadShotBulletFireRate;
+
+                waveShotRT.bulletSpeed = weaponStats.spreadShotBulletSpeed;
+                waveShotRT.bulletAngleVariance = 20;
+                waveShotRT.fireRate = weaponStats.spreadShotBulletFireRate;*/
+
+                waveShotLT.fire();
+                waveShotRT.fire();
+                playerStats.weaponName = 'MAX POWER';
                 weaponText.render();
             }
 
@@ -684,9 +746,11 @@
                 newBomb.body.velocity.x = 0;
                 newBomb.body.velocity.y = 0;
                 newBomb.body.setCircle(9, -1, -2);
-                revealCard(100, 300, -100, 0, 'playerCard');
+                revealCard(100, 450, -40, 0, 'playerCard'); // old y is 300
                 game.physics.arcade.moveToXY(newBomb, game.world.centerX, game.world.centerY);
                 playerStats.bomb--;
+                playerStats.power = Math.floor(playerStats.power * 0.75);
+                powerText.render();
                 bombText.render();
                 playerBombSFX.onStop.add(function() {
                     console.log(playerStats.bombTimer);
@@ -707,7 +771,7 @@
                 bombPart.anchor.setTo(0.5);
                 bombPart.outOfBoundsKill = true;
                 bombPart.checkWorldBounds = true;
-                bombPart.damageAmount = 24;
+                bombPart.damageAmount = weaponStats.bombDamage;
                 bombPart.body.immovable = true;
                 bombPart.name = 'bombDispersal';
                 if (i === 0) {
@@ -787,6 +851,7 @@
                 playerCard.anchor.setTo(0.5);
                 playerCard.body.velocity.x = xVel;
                 playerCard.body.velocity.y = yVel;
+                playerCard.alpha = 0.7
             }
             else {
                 playerCardActive = true;
@@ -795,6 +860,7 @@
                 newCard.anchor.setTo(0.5);
                 newCard.body.velocity.x = xVel;
                 newCard.body.velocity.y = yVel;
+                newCard.alpha = 0.7;
             }
         }
         function burstSmallPower(spriteX, spriteY, spriteYvel, amount) {
@@ -845,26 +911,31 @@
             if (p.key === 'smallP') {
                 console.log('smallP collect');
                 playerStats.power += 50;
-                if (playerStats.power >= 500 && playerStats.power < 1000 && playerStats.weaponName !== 'DOUBLE SHOT') {
-                    playerStats.weaponName = 'DOUBLE SHOT';
-                    weaponText.render();
-                }
-                else if (playerStats.power >= 1000 && playerStats.power < 1750 && playerStats.weaponName !== 'TRIPLE SHOT') {
-                    playerStats.weaponName = 'TRIPLE SHOT';
-                    weaponText.render();
-                }
-                else if (playerStats.power >= 1750 && playerStats.power < 2500 && playerStats.weaponName !== 'WAVE SHOT') {
-                    playerStats.weaponName = 'WAVE SHOT';
-                    weaponText.render();
-                }
-                else if (playerStats.power >= 2500 && playerStats.weaponName !== 'SPREAD SHOT') {
-                    playerStats.weaponName = 'SPREAD SHOT';
-                    weaponText.render();
-                }
+
             }
             else if (p.key === 'largeP') {
                 console.log('largeP collect');
                 playerStats.power += 100;
+            }
+            if (playerStats.power >= 500 && playerStats.power < 1000 && playerStats.weaponName !== 'DOUBLE SHOT') {
+                playerStats.weaponName = 'DOUBLE SHOT';
+                weaponText.render();
+            }
+            else if (playerStats.power >= 1000 && playerStats.power < 2000 && playerStats.weaponName !== 'TRIPLE SHOT') {
+                playerStats.weaponName = 'TRIPLE SHOT';
+                weaponText.render();
+            }
+            else if (playerStats.power >= 2000 && playerStats.power < 3000 && playerStats.weaponName !== 'WAVE SHOT') {
+                playerStats.weaponName = 'WAVE SHOT';
+                weaponText.render();
+            }
+            else if (playerStats.power >= 3000 && playerStats.weaponName !== 'SPREAD SHOT') {
+                playerStats.weaponName = 'SPREAD SHOT';
+                weaponText.render();
+            }
+            else if (playerStats.power >= 4000 && playerStats.weaponName !== 'MAX POWER') {
+                playerStats.weaponName = 'MAX POWER';
+                weaponText.render();
             }
             powerText.render();
         }
