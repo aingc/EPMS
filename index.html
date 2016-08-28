@@ -46,6 +46,7 @@
             game.load.image('playerBomb', './assets/Player/bomb.png');
             game.load.image('smallP', './assets/Player/PowerSmall.png');
             game.load.image('largeP', './assets/Player/PowerLarge.png');
+            game.load.image('playerCard', './assets/Player/sanaeCard.png');
             game.load.spritesheet('gruntDeathExplode', './assets/Enemy/gruntDeathExplosion2.png', 64, 65);
             game.load.audio('enemyDeath', './assets/Audio/SFX/enemyDeath.wav');
             game.load.audio('playerDeath', './assets/Audio/SFX/playerExplosion.wav');
@@ -141,6 +142,8 @@
         var playerBombs; // Divine Wind: Forgotten Cyclone
         var playerHurtbox;
         var playerSprite;
+        var playerCard;
+        var playerCardActive = false;
         var cursors;
         var fireButton;
         var bombButton;
@@ -177,11 +180,11 @@
         // weapon.Bullets is a group
         function create() {
             // Scrolling Background
-            /*bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
+            bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
 
             // Music and SFX
             bgm = game.add.audio('stage01BGM');
-            bgm.play();*/
+            bgm.play();
             bossBGM = game.add.audio('stage01BossBGM');
 
             enemyDeathSFX = game.add.audio('enemyDeath');
@@ -367,13 +370,21 @@
             });
 
             //spawnStraightGrunt(350, 200, 0, 0, 'gruntStraightRed', 'straightGruntShot');
-            spawnYuyuko();
+            //spawnYuyuko();
         }
 
         function update() {
             playerSprite.sendToBack();
             playerHurtbox.sendToBack();
-            /*bg.sendToBack();*/
+            bg.sendToBack();
+            if (playerCardActive) {
+                playerCard.bringToTop();
+                console.log(playerCard.body.x);
+                if (playerCard.body.x <= -117) {
+                    playerCard.kill();
+                    playerCardActive = false;
+                }
+            }
             smallP.callAll('bringToTop');
             largeP.callAll('bringToTop');
             aimGrunts.callAll('bringToTop');
@@ -420,13 +431,6 @@
             // Vacuum Grunt Bullets when bomb is active
             bombVacuum();
 
-            // Check bomb's cyclone collision with bullets
-            /*if (playerStats.bombActive) {
-                game.physics.arcade.overlap(playerBombs.getChildAt(playerBombs.length - 1).body, aimGrunts, bombCycloneCollide, null, this);
-                game.physics.arcade.overlap(playerBombs.getChildAt(playerBombs.length - 1).body, straightGrunts, bombCycloneCollide, null, this);
-                game.physics.arcade.overlap(playerBombs.getChildAt(playerBombs.length - 1).body, rotateGrunts, bombCycloneCollide, null, this);
-            }*/
-
             // Check Power Item Collisions
             game.physics.arcade.overlap(playerSprite, smallP, playerPowerUp, null, this);
             game.physics.arcade.overlap(playerSprite, largeP, playerPowerUp, null, this);
@@ -439,7 +443,7 @@
             gruntRotateFire(rotateGrunts, rotateGruntWeapons, rotateGruntWeaponDIS);
 
             // Scroll the bg
-            /*bg.tilePosition.y += 2;*/
+            bg.tilePosition.y += 2;
 
             // Check game over
             if (!playerHurtbox.alive && gameOverText.visible === false) {
@@ -454,10 +458,10 @@
             checkPOClineBreach();
 
             startStageOne();
-            /*if (bgm.volume <= 0) {
+            if (bgm.volume <= 0) {
                 bgm.stop();
                 console.log('bgm stopped');
-            }*/
+            }
             if (bossSpawned) {
                 // boss movement
                 yuyukoFloat();
@@ -469,8 +473,8 @@
                 game.physics.arcade.overlap(waveShotLT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
                 game.physics.arcade.overlap(waveShotRT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
                 game.physics.arcade.overlap(playerHurtbox, bossTransition, playerCollide, null, this);
-                /*game.physics.arcade.overlap(playerHurtbox, bossTrnznTwo, playerCollide, null, this);
-                game.physics.arcade.overlap(playerHurtbox, bossTrnznThree, playerCollide, null, this);*/
+                //game.physics.arcade.overlap(playerHurtbox, bossTrnznTwo, playerCollide, null, this);
+                //game.physics.arcade.overlap(playerHurtbox, bossTrnznThree, playerCollide, null, this);
                 // check bomb collision with each butterfly transition
                 // check bomb collision with yuyukoBoss
 
@@ -658,7 +662,6 @@
             if (playerHurtbox.alive && bombButton.isDown && playerStats.bomb > 0 && !playerStats.bombActive) {
                 playerStats.bombActive = true;
                 playerBombSFX.play();
-                // Do sanaeCard tween
                 var newBomb = playerBombs.create(playerHurtbox.body.x, playerHurtbox.body.y, 'playerBomb');
                 newBomb.anchor.setTo(0.5);
                 newBomb.outOfBoundsKill = true;
@@ -668,6 +671,7 @@
                 newBomb.body.velocity.x = 0;
                 newBomb.body.velocity.y = 0;
                 newBomb.body.setCircle(9, -1, -2);
+                revealCard(100, 300, -100, 0, 'playerCard');
                 game.physics.arcade.moveToXY(newBomb, game.world.centerX, game.world.centerY);
                 playerStats.bomb--;
                 bombText.render();
@@ -716,6 +720,25 @@
             bullet.kill();
             // add to score here and render
             // maybe some sound?
+        }
+
+        function revealCard(x, y, xVel, yVel, spriteName) {
+            if (spriteName === 'playerCard') {
+                playerCardActive = true;
+                playerCard = game.add.sprite(x, y, spriteName);
+                game.physics.arcade.enable(playerCard);
+                playerCard.anchor.setTo(0.5);
+                playerCard.body.velocity.x = xVel;
+                playerCard.body.velocity.y = yVel;
+            }
+            else {
+                playerCardActive = true;
+                var newCard = game.add.sprite(x, y, spriteName);
+                game.physics.arcade.enable(newCard);
+                newCard.anchor.setTo(0.5);
+                newCard.body.velocity.x = xVel;
+                newCard.body.velocity.y = yVel;
+            }
         }
         function burstSmallPower(spriteX, spriteY, spriteYvel, amount) {
             smallP.x = spriteX;
@@ -1105,7 +1128,7 @@
         }
 
         function spawnYuyuko() {
-            //bossBGM.play(true);
+            bossBGM.play();
             yuyukoBoss = game.add.sprite((game.world.width/2), 140, 'yuyuko'); //512 x 256
             game.physics.arcade.enable(yuyukoBoss);
             yuyukoBoss.anchor.setTo(0.5);
