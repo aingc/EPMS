@@ -221,11 +221,11 @@
         // weapon.Bullets is a group
         function create() {
             // Scrolling Background
-            /*bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
+            bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
 
             // Music and SFX
             bgm = game.add.audio('stage01BGM');
-            bgm.play();*/
+            bgm.play();
             bossBGM = game.add.audio('stage01BossBGM');
             bossButterflySFX = game.add.audio('yuyukoButterflySFX');
             bossButterflySFX.volume = 0.4;
@@ -422,10 +422,12 @@
                 // Power
             powerText = game.add.text(10, game.world.height - 90, 'Power: ' + playerStats.power + '/4.0', {font: '20px Arial', fill: '#00FF00'});
             powerText.render = function() {
-                if (playerStats.power === 4000) {
-                    powerText.text = 'Power: ' + (Math.max(playerStats.power, 0)/1000) + '.0/4.0';
+                if (playerStats.power >= 4000) {
+                    powerText.text = 'Power: ' + (Math.floor(Math.max(playerStats.power, 0)/1000)) + '.0/4.0';
                 }
-                powerText.text = 'Power: ' + (Math.max(playerStats.power, 0)/1000) + '/4.0';
+                else {
+                    powerText.text = 'Power: ' + (Math.max(playerStats.power, 0) / 1000) + '/4.0';
+                }
             };
                 // Bombs
             bombText = game.add.text(10, game.world.height - 60, 'Bombs: ' + playerStats.bomb, {font: '20px Arial', fill: '#00FF00'});
@@ -484,13 +486,13 @@
             });
 
             //spawnStraightGrunt(400, 200, 0, 0, 'yuyukoOrb', 'gruntStraightShot');
-            spawnYuyuko();
+            //spawnYuyuko();
         }
 
         function update() {
             playerSprite.sendToBack();
             playerHurtbox.sendToBack();
-            /*bg.sendToBack();*/
+            bg.sendToBack();
             if (playerCardActive) {
                 playerCard.bringToTop();
                 console.log(playerCard.body.x);
@@ -561,7 +563,7 @@
             gruntRotateFire(rotateGrunts, rotateGruntWeapons, rotateGruntWeaponDIS);
 
             // Scroll the bg
-            /*bg.tilePosition.y += 2;*/
+            bg.tilePosition.y += 2;
 
             // Check game over
             if (!playerHurtbox.alive && gameOverText.visible === false) {
@@ -573,14 +575,14 @@
             }
 
             // Display POC Line at the beginning and check for breaches
-            /*displayPOCLine();
-            checkPOClineBreach();*/
+            displayPOCLine();
+            checkPOClineBreach();
 
-            /*startStageOne();
+            startStageOne();
             if (bgm.volume <= 0) {
                 bgm.stop();
                 console.log('bgm stopped');
-            }*/
+            }
             if (bossSpawned) {
                 // boss movement
                 yuyukoFloat();
@@ -1612,6 +1614,7 @@
                 // 2nd transition here
                 bossText.render('Yuyuko Saigyouji');
                 if (trnznData.trnznTimer % 17 === 0) {
+                    // can definitely clean this up later
                     getRandButterflyPoztn(0, 0, 512, 600);
                     bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
                     getRandButterflyPoztn(0, 0, 512, 600);
