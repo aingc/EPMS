@@ -64,7 +64,7 @@
             score: 0,
             graze: 0,
             bomb: 2,
-            power: 0, // 0
+            power: 4000, // 0
             weaponName: 'SINGLE SHOT',
             bombTimer: 0,
             bombActive: false,
@@ -391,6 +391,18 @@
             weaponText = game.add.text(300, game.world.height - 40, playerStats.weaponName, {font: '30px Arial', fill: '#00FFFF'});
             weaponText.render = function() {
                 weaponText.text = playerStats.weaponName;
+                if (playerStats.weaponName === 'DOUBLE SHOT' || playerStats.weaponName === 'SPREAD SHOT') {
+                    weaponText.x = 286.5;
+                }
+                else if (playerStats.weaponName === 'TRIPLE SHOT') {
+                    weaponText.x = 305;
+                }
+                else if (playerStats.weaponName === 'WAVE SHOT') {
+                    weaponText.x = 325;
+                }
+                else {
+                    weaponText.x = 300;
+                }
             };
 
                 // Point of Collection Line
