@@ -51,6 +51,7 @@
             game.load.image('smallP', './assets/Player/PowerSmall.png');
             game.load.image('largeP', './assets/Player/PowerLarge.png');
             game.load.image('playerCard', './assets/Player/sanaeCard.png');
+            game.load.image('bossCard', './assets/Boss/yuyukoCard.png');
             game.load.spritesheet('gruntDeathExplode', './assets/Enemy/gruntDeathExplosion2.png', 64, 65);
             game.load.audio('enemyDeath', './assets/Audio/SFX/enemyDeath.wav');
             game.load.audio('playerDeath', './assets/Audio/SFX/playerExplosion.wav');
@@ -64,7 +65,7 @@
             score: 0,
             graze: 0,
             bomb: 2,
-            power: 4000, // 0
+            power: 0, // 0
             weaponName: 'SINGLE SHOT',
             bombTimer: 0,
             bombActive: false,
@@ -72,6 +73,7 @@
         };
         const bossMaxHP = 60;
         var lifeText;
+        var scoreText;
         var powerText;
         var weaponText;
         var bombText;
@@ -134,7 +136,7 @@
             spreadShotDamage: 2,
             maxPowerBulletSpeed: 800,
             maxPowerBulletFireRate: 80,
-            maxPowerBulletDamage: 5,
+            maxPowerBulletDamage: 3,
             bombDamage: 48
         };
         var rotateGruntTimers = [];
@@ -217,7 +219,7 @@
             playerDeathSFX = game.add.audio('playerDeath');
             playerDeathSFX.volume = 0.3;
             playerBombSFX = game.add.audio('bomb');
-            playerBombSFX.volume = 0.3;
+            playerBombSFX.volume = 1.0;
             bossDeathSFX = game.add.audio('bossDeath');
             bossDeathSFX.volume = 1.1;
 
@@ -366,10 +368,18 @@
             bossTrnznThree.physicsBodyType = Phaser.Physics.ARCADE;*/
 
             // Game Text
+                // Score
+            scoreText = game.add.text(10, game.world.height - 120, 'Score: ' + playerStats.score, {font: '20px Arial', fill: '#00FF00'});
+            scoreText.render = function() {
+                scoreText.text = 'Score: ' + Math.max(playerStats.score, 0);
+            };
                 // Power
-            powerText = game.add.text(10, game.world.height - 90, 'Power: ' + playerStats.power, {font: '20px Arial', fill: '#00FF00'});
+            powerText = game.add.text(10, game.world.height - 90, 'Power: ' + playerStats.power + '/4.0', {font: '20px Arial', fill: '#00FF00'});
             powerText.render = function() {
-                powerText.text = 'Power: ' + Math.max(playerStats.power, 0);
+                if (playerStats.power === 4000) {
+                    powerText.text = 'Power: ' + (Math.max(playerStats.power, 0)/1000) + '.0/4.0';
+                }
+                powerText.text = 'Power: ' + (Math.max(playerStats.power, 0)/1000) + '/4.0';
             };
                 // Bombs
             bombText = game.add.text(10, game.world.height - 60, 'Bombs: ' + playerStats.bomb, {font: '20px Arial', fill: '#00FF00'});
@@ -383,7 +393,7 @@
             };
 
                 // Game Over
-            gameOverText = game.add.text(game.world.centerX, game.world.centerY, 'GAME OVER\nTo restart, refresh the browser', {font: '30px Arial', fill: '#fff'});
+            gameOverText = game.add.text(game.world.centerX, game.world.centerY, 'GAME OVER\nYOUR ENDING SCORE: ' + playerStats.score + '\nTo restart, refresh the browser', {font: '30px Arial', fill: '#fff'});
             gameOverText.anchor.setTo(0.5);
             gameOverText.visible = false;
 
@@ -504,10 +514,11 @@
             gruntRotateFire(rotateGrunts, rotateGruntWeapons, rotateGruntWeaponDIS);
 
             // Scroll the bg
-            bg.tilePosition.y += 1;
+            bg.tilePosition.y += 2;
 
             // Check game over
             if (!playerHurtbox.alive && gameOverText.visible === false) {
+                gameOverText.text = 'GAME OVER\nYOUR ENDING SCORE: ' + playerStats.score + '\nTo restart, refresh the browser';
                 gameOverText.visible = true;
                 var fadeInGameOver = game.add.tween(gameOverText);
                 fadeInGameOver.to({alpha: 0.2}, 1000, Phaser.Easing.Quintic.Out, false, 0, -1, true);
@@ -806,13 +817,6 @@
                     bullet.body.setSize(60, 13, -23, 24);
                     bullet.scale.setTo(1.5, 1.8);
                 }, this);
-                /*waveShotLT.bulletSpeed = weaponStats.spreadShotBulletSpeed;
-                waveShotLT.bulletAngleVariance = 20;
-                waveShotLT.fireRate = weaponStats.spreadShotBulletFireRate;
-
-                waveShotRT.bulletSpeed = weaponStats.spreadShotBulletSpeed;
-                waveShotRT.bulletAngleVariance = 20;
-                waveShotRT.fireRate = weaponStats.spreadShotBulletFireRate;*/
 
                 waveShotLT.fire();
                 waveShotRT.fire();
@@ -1015,12 +1019,21 @@
             if (p.key === 'smallP') {
                 console.log('smallP collect');
                 playerStats.power += 50;
+                playerStats.score += 5;
+                scoreText.render();
 
             }
             else if (p.key === 'largeP') {
                 console.log('largeP collect');
                 playerStats.power += 100;
+                playerStats.score += 10;
+                scoreText.render();
             }
+
+            if (playerStats.power >= 4000) {
+                playerStats.power = 4000;
+            }
+            
             if (playerStats.power >= 0 && playerStats.power < 500 && playerStats.weaponName !== 'SINGLE SHOT') {
                 playerStats.weaponName = 'SINGLE SHOT';
                 weaponText.render();
@@ -1063,6 +1076,8 @@
             lifeText.render();
             playerDeathSFX.play();
             playerPowerNerf();
+            playerStats.score = Math.floor(playerStats.score * 0.75);
+            scoreText.render();
             if (playerHurtbox.alive) {
                 playerStats.bomb = 2;
                 bombText.render();
@@ -1085,6 +1100,8 @@
             if (bullet !== undefined) {
                 bullet.kill();
                 sprite.damage(bullet.damageAmount);
+                playerStats.score += 5;
+                scoreText.render();
                 if (sprite.health <= 0) {
                     var spriteX = sprite.body.x;
                     var spriteY = sprite.body.y;
@@ -1093,16 +1110,22 @@
                         burstSmallPower(spriteX, spriteY, spriteYvel, 5); // 250 Power
                         burstLargePower(spriteX, spriteY, spriteYvel, 2); // 200 Power
                         console.log('aim grunt release Power'); // Total Power Release: 450
+                        playerStats.score += 200;
+                        scoreText.render();
                     }
                     else if (sprite.name === 'rotateGrunt') {
                         burstSmallPower(spriteX, spriteY, spriteYvel, 3); // 150 Power
                         burstLargePower(spriteX, spriteY, spriteYvel, 5); // 500 Power
                         console.log('rotateGrunt release Power'); // Total Power Release: 650
+                        playerStats.score += 250;
+                        scoreText.render();
                     }
                     else if (sprite.name === 'straightGrunt') {
                         burstSmallPower(spriteX, spriteY, spriteYvel, 2); // 100 Power
                         burstLargePower(spriteX, spriteY, spriteYvel, 1); // 100 Power
                         console.log('straightGrunt release Power'); // Total Power Release: 200
+                        playerStats.score += 50;
+                        scoreText.render();
                     }
                     var spriteDeathAnim = gruntDeaths.getFirstExists(false);
                     spriteDeathAnim.reset(sprite.body.x + sprite.body.halfWidth, sprite.body.y + sprite.body.halfHeight);
@@ -1151,6 +1174,8 @@
             lifeText.render();
             playerDeathSFX.play();
             playerPowerNerf();
+            playerStats.score = Math.floor(playerStats.score * 0.75);
+            scoreText.render();
             if (playerHurtbox.alive) {
                 playerStats.bomb = 2;
                 bombText.render();
@@ -1404,6 +1429,8 @@
             if (bullet !== undefined) {
                 bullet.kill();
                 sprite.damage(bullet.damageAmount);
+                playerStats.score += 5;
+                scoreText.render();
                 //update health here
                 console.log(sprite.health);
                 var tempCurrentHPratio = (sprite.health/bossMaxHP) * 100;
