@@ -59,6 +59,7 @@
             game.load.audio('bomb', './assets/Audio/SFX/SpecialSS.wav');
             game.load.audio('stage01BGM', './assets/Audio/BGM/NightSakuraOfDeadSpirits.mp3');
             game.load.audio('stage01BossBGM', './assets/Audio/BGM/BloomNobly.mp3');
+            game.load.audio('yuyukoButterflySFX', './assets/Audio/SFX/YuyuButterfly.wav');
         }
 
         var playerStats = {
@@ -69,7 +70,7 @@
             weaponName: 'SINGLE SHOT',
             bombTimer: 0,
             bombActive: false,
-            focusActive: false,
+            focusActive: false
         };
         const bossMaxHP = 60;
         var lifeText;
@@ -145,7 +146,10 @@
         // Sound
         var bg;
         var bgm;
+
         var bossBGM;
+        var bossButterflySFX;
+
         var enemyDeathSFX;
         var playerDeathSFX;
         var playerBombSFX;
@@ -188,12 +192,22 @@
         var bossHPbar;
         var bossText;
         var bossTransition;
+        // Phase 1
+        var bossWeaponNetherSignTracker;
+        var bossWeaponNetherRotationLT;
+        var bossWeaponNetherRotationRT;
+        var netherBulletData = {
+            netherRandX: 0,
+            netherRandY: 0,
+            netherButterflyFireRate: 300 //Should actually be 275, but is 300 to make it easier for the public
+        };
         /*var bossTrnznTwo;
         var bossTrnznThree;*/
         var trnznData = {
             trnznRandX: 0,
             trnznRandY: 0,
-            trnznTimer: 0
+            trnznTimer: 0,
+            trnznSFXTimer: 0
         };
 
         // Enemy Weapons
@@ -207,19 +221,21 @@
         // weapon.Bullets is a group
         function create() {
             // Scrolling Background
-            bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
+            /*bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
 
             // Music and SFX
             bgm = game.add.audio('stage01BGM');
-            bgm.play();
+            bgm.play();*/
             bossBGM = game.add.audio('stage01BossBGM');
+            bossButterflySFX = game.add.audio('yuyukoButterflySFX');
+            bossButterflySFX.volume = 0.4;
 
             enemyDeathSFX = game.add.audio('enemyDeath');
             enemyDeathSFX.volume = 0.3;
             playerDeathSFX = game.add.audio('playerDeath');
             playerDeathSFX.volume = 0.3;
             playerBombSFX = game.add.audio('bomb');
-            playerBombSFX.volume = 1.0;
+            playerBombSFX.volume = 0.7;
             bossDeathSFX = game.add.audio('bossDeath');
             bossDeathSFX.volume = 1.1;
 
@@ -360,6 +376,36 @@
             bossTransition = game.add.group();
             bossTransition.enableBody = true;
             bossTransition.physicsBodyType = Phaser.Physics.ARCADE;
+            bossWeaponNetherSignTracker = game.add.group();
+            bossWeaponNetherSignTracker.enableBody = true;
+            bossWeaponNetherSignTracker.physicsBodyType = Phaser.Physics.ARCADE;
+
+            // Boss Phase 1 Weapons 'Nether Sign'
+            bossWeaponNetherRotationLT = game.add.weapon(200, 'butterflyRed');
+            bossWeaponNetherRotationLT.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            bossWeaponNetherRotationLT.bulletAngleOffset = 180;
+            bossWeaponNetherRotationLT.fireAngle = 90;
+            bossWeaponNetherRotationLT.bulletAngleVariance = 60;
+            bossWeaponNetherRotationLT.bulletSpeed = 100;
+            bossWeaponNetherRotationLT.fireRate = netherBulletData.netherButterflyFireRate; //300
+            bossWeaponNetherRotationLT.fireFrom.setTo(128, 140, 1, 1);
+            bossWeaponNetherRotationLT.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 1;
+                bullet.body.setCircle(6, 7.4, 10.5);
+            }, this);
+            bossWeaponNetherRotationRT = game.add.weapon(200, 'butterflyBlue');
+            bossWeaponNetherRotationRT.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            bossWeaponNetherRotationRT.bulletAngleOffset = 180;
+            bossWeaponNetherRotationRT.fireAngle = 90;
+            bossWeaponNetherRotationRT.bulletAngleVariance = 60;
+            bossWeaponNetherRotationRT.bulletSpeed = 100;
+            bossWeaponNetherRotationRT.fireRate = netherBulletData.netherButterflyFireRate;
+            bossWeaponNetherRotationRT.fireFrom.setTo(364, 140, 1, 1);
+            bossWeaponNetherRotationRT.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 1;
+                bullet.body.setCircle(6, 7.4, 10.5);
+            }, this);
+
             /*bossTrnznTwo = game.add.group();
             bossTrnznTwo.enableBody = true;
             bossTrnznTwo.physicsBodyType = Phaser.Physics.ARCADE;
@@ -437,13 +483,14 @@
                 explode.scale.setTo(1.5, 1.5);
             });
 
-            //spawnYuyuko();
+            //spawnStraightGrunt(400, 200, 0, 0, 'yuyukoOrb', 'gruntStraightShot');
+            spawnYuyuko();
         }
 
         function update() {
             playerSprite.sendToBack();
             playerHurtbox.sendToBack();
-            bg.sendToBack();
+            /*bg.sendToBack();*/
             if (playerCardActive) {
                 playerCard.bringToTop();
                 console.log(playerCard.body.x);
@@ -514,7 +561,7 @@
             gruntRotateFire(rotateGrunts, rotateGruntWeapons, rotateGruntWeaponDIS);
 
             // Scroll the bg
-            bg.tilePosition.y += 2;
+            /*bg.tilePosition.y += 2;*/
 
             // Check game over
             if (!playerHurtbox.alive && gameOverText.visible === false) {
@@ -526,25 +573,39 @@
             }
 
             // Display POC Line at the beginning and check for breaches
-            displayPOCLine();
-            checkPOClineBreach();
+            /*displayPOCLine();
+            checkPOClineBreach();*/
 
-            startStageOne();
+            /*startStageOne();
             if (bgm.volume <= 0) {
                 bgm.stop();
                 console.log('bgm stopped');
-            }
+            }*/
             if (bossSpawned) {
                 // boss movement
                 yuyukoFloat();
 
                 // boss collision
-                game.physics.arcade.overlap(playerHurtbox, yuyukoBoss, playerCollide, null, this);
+                if (!playerStats.bombActive) {
+                    game.physics.arcade.overlap(playerHurtbox, yuyukoBoss, playerCollide, null, this);
+                    game.physics.arcade.overlap(playerHurtbox, bossTransition, playerCollide, null, this);
+                    game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherSignTracker, playerCollide, null, this);
+                    game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherRotationLT.bullets, playerCollide, null, this);
+                    game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherRotationRT.bullets, playerCollide, null, this);
+                    // and more boss weapons colliding with player
+                }
                 game.physics.arcade.overlap(singleShot.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
                 game.physics.arcade.overlap(doubleShot.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
                 game.physics.arcade.overlap(waveShotLT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
                 game.physics.arcade.overlap(waveShotRT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
-                game.physics.arcade.overlap(playerHurtbox, bossTransition, playerCollide, null, this);
+                game.physics.arcade.overlap(bossTransition, playerBombs, bombCycloneCollide, null, this);
+                game.physics.arcade.overlap(bossWeaponNetherSignTracker, playerBombs, bombCycloneCollide, null, this);
+                game.physics.arcade.overlap(bossWeaponNetherRotationLT.bullets, playerBombs, bombCycloneCollide, null, this);
+                game.physics.arcade.overlap(bossWeaponNetherRotationRT.bullets, playerBombs, bombCycloneCollide, null, this);
+                // all other boss weapons with bomb
+                //game.physics.arcade.overlap(__SOME OTHER BOSS WEAPON__, playerBombs, bombCycloneCollide, null, this);
+
+
                 //game.physics.arcade.overlap(playerHurtbox, bossTrnznTwo, playerCollide, null, this);
                 //game.physics.arcade.overlap(playerHurtbox, bossTrnznThree, playerCollide, null, this);
                 // check bomb collision with each butterfly transition
@@ -941,6 +1002,16 @@
                 bossTransition.forEachAlive(function(butterfly) {
                     game.physics.arcade.moveToObject(butterfly, tempBombSprite.body, 600);
                 }, this);
+                bossWeaponNetherSignTracker.forEachAlive(function(netherBullet) {
+                    game.physics.arcade.moveToObject(netherBullet, tempBombSprite.body, 600);
+                }, this);
+                bossWeaponNetherRotationLT.bullets.forEachAlive(function(netherButterfly) {
+                    game.physics.arcade.moveToObject(netherButterfly, tempBombSprite.body, 600);
+                }, this);
+                bossWeaponNetherRotationRT.bullets.forEachAlive(function(netherButterfly) {
+                    game.physics.arcade.moveToObject(netherButterfly, tempBombSprite.body, 600);
+                }, this);
+                // and any more boss weapons to vacuum
             }
         }
 
@@ -1033,7 +1104,7 @@
             if (playerStats.power >= 4000) {
                 playerStats.power = 4000;
             }
-            
+
             if (playerStats.power >= 0 && playerStats.power < 500 && playerStats.weaponName !== 'SINGLE SHOT') {
                 playerStats.weaponName = 'SINGLE SHOT';
                 weaponText.render();
@@ -1263,6 +1334,9 @@
             newGrunt.body.velocity.y = velocityY;
             newGrunt.name = 'straightGrunt';
 
+            // hitbox testing
+            //newGrunt.body.setCircle(13, 3.5, 3);
+
             var newWeapon = game.add.weapon(30, weaponName);
             newWeapon.bulletAngleOffset = enemyWeapon.gruntBulletAngleOffset;
             if (moving) {
@@ -1378,6 +1452,11 @@
             trnznData.trnznRandY = getRandomTransitions(tempMinY, tempMaxY);
         }
 
+        function getRandOrbPoztn(tempMinX, tempMinY, tempMaxX, tempMaxY) {
+            netherBulletData.netherRandX = getRandomTransitions(tempMinX, tempMaxX);
+            netherBulletData.netherRandY = getRandomTransitions(tempMinY, tempMaxY);
+        }
+
         function bossSpawnButterfly(x, y, xVel, yVel, spriteName, groupName) {
             var newButterfly = groupName.create(x, y, spriteName);
             newButterfly.anchor.setTo(0.5);
@@ -1391,7 +1470,25 @@
             newButterfly.angle = 90;
         }
 
+        function bossSpawnNetherBullet(x, y, xVel, yVel, spriteName, groupName, follow) {
+            var newNetherBullet = groupName.create(x, y, spriteName);
+            newNetherBullet.anchor.setTo(0.5);
+            newNetherBullet.outOfBoundsKill = true;
+            newNetherBullet.checkWorldBounds = true;
+            newNetherBullet.damageAmount = 1;
+            newNetherBullet.body.immovable = true;
+            newNetherBullet.body.velocity.x = xVel;
+            newNetherBullet.body.velocity.y = yVel;
+            newNetherBullet.body.setCircle(13, 3.5, 3);
+
+            if (follow) {
+                game.physics.arcade.moveToObject(newNetherBullet, playerHurtbox, 100);
+            }
+
+        }
+
         function spawnYuyuko() {
+            bossBGM.loop = true;
             bossBGM.play();
             yuyukoBoss = game.add.sprite((game.world.width/2), 140, 'yuyuko'); //512 x 256
             game.physics.arcade.enable(yuyukoBoss);
@@ -1448,6 +1545,7 @@
         }
 
         function checkYuyukoHealthAndShoot() {
+            // Update Name on Health
             if (bossText.text === 'Yuyuko Saigyouji' && yuyukoBoss.health <= 50 && yuyukoBoss.health >= 41) {
                 clearYuyukoBullets();
                 console.log('cleared');
@@ -1478,26 +1576,37 @@
                 // pause here
             }
 
+            // SHOOTING HAPPENS HERE 1337
             if (yuyukoBoss.health <= 60 && yuyukoBoss.health >= 51) {
                 // 1st transition here
+                if (trnznData.trnznTimer % 74 === 0 && trnznData.trnznTimer % 148 === 0) {
+                    bossButterflySFX.play();
+                }
                 if (trnznData.trnznTimer % 17 === 0) {
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                    for (var j = 0; j < 6; j++) {
+                        getRandButterflyPoztn(0, 0, 512, 600);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                    }
                 }
                 bossTransition.callAll('bringToTop');
             }
             else if (yuyukoBoss.health <= 50 && yuyukoBoss.health >= 41) {
+                // 1st SPELL CARD
                 bossText.render('Yuyuko Saigyouji: \'Nether Sign\' Passage to the Netherworld');
+                if (trnznData.trnznTimer % 74 === 0 && trnznData.trnznTimer % 148 === 0) {
+                    bossButterflySFX.play();
+                }
+                if (trnznData.trnznTimer % 30 === 0) {
+                    bossSpawnNetherBullet(playerHurtbox.body.x, 150, 0, 100, 'yuyukoOrb', bossWeaponNetherSignTracker, false);
+                    /*bossWeaponNetherRotationLT.fire();
+                    bossWeaponNetherRotationRT.fire();*/
+                }
+                if (trnznData.trnznTimer % 25 === 0) {
+                    getRandOrbPoztn(0, 0, 512, 400);
+                    bossSpawnNetherBullet(netherBulletData.netherRandX, netherBulletData.netherRandY, 0, 0, 'yuyukoOrb', bossWeaponNetherSignTracker, true);
+                }
+                bossWeaponNetherRotationLT.fire();
+                bossWeaponNetherRotationRT.fire();
             }
             else if (yuyukoBoss.health <= 40 && yuyukoBoss.health >= 31) {
                 // 2nd transition here
@@ -1535,7 +1644,7 @@
             else if (yuyukoBoss.health <= 20 && yuyukoBoss.health >= 11) {
                 // 3rd transition here
                 bossText.render('Yuyuko Saigyouji');
-                if (trnznData.trnznTimer % 17 === 0) {
+                if (trnznData.trnznTimer % 34 === 0) {
                     for (var i = 0; i < 3; i++) {
                         getRandButterflyPoztn(0, 0, 512, 600);
                         bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyRed', bossTransition);
@@ -1559,10 +1668,13 @@
                 //ending screen here
             }
             trnznData.trnznTimer++;
+            trnznData.trnznSFXTimer++;
         }
 
         function clearYuyukoBullets() {
             bossTransition.callAllExists('kill', true);
+            bossWeaponNetherSignTracker.callAllExists('kill', true);
+            // and any other boss weapons
         }
         // Stage 01
         function startStageOne() {
