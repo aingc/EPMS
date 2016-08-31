@@ -61,6 +61,9 @@
             game.load.audio('stage01BGM', './assets/Audio/BGM/NightSakuraOfDeadSpirits.mp3');
             game.load.audio('stage01BossBGM', './assets/Audio/BGM/BloomNobly.mp3');
             game.load.audio('yuyukoButterflySFX', './assets/Audio/SFX/YuyuButterfly.wav');
+            game.load.audio('bossLaserSFX', './assets/Audio/SFX/bossLaser.wav');
+            game.load.audio('phaseDefeatSFX', './assets/Audio/SFX/PhaseDefeat.wav');
+            game.load.audio('phaseActivateSFX', './assets/Audio/SFX/PhaseActivate.wav');
         }
 
         var playerStats = {
@@ -150,6 +153,11 @@
 
         var bossBGM;
         var bossButterflySFX;
+        var bossLaserSFX;
+        var bossPause = true;
+        var bossPauseTimer = 0;
+        var phaseDefeatSFX;
+        var phaseActivateSFX;
 
         var enemyDeathSFX;
         var playerDeathSFX;
@@ -234,6 +242,7 @@
             bossBGM = game.add.audio('stage01BossBGM');
             bossButterflySFX = game.add.audio('yuyukoButterflySFX');
             bossButterflySFX.volume = 0.4;
+            bossLaserSFX = game.add.audio('bossLaserSFX');
 
             enemyDeathSFX = game.add.audio('enemyDeath');
             enemyDeathSFX.volume = 0.3;
@@ -243,6 +252,8 @@
             playerBombSFX.volume = 0.7;
             bossDeathSFX = game.add.audio('bossDeath');
             bossDeathSFX.volume = 1.1;
+            phaseDefeatSFX = game.add.audio('phaseDefeatSFX');
+            phaseActivateSFX = game.add.audio('phaseActivateSFX');
 
 
             // Items
@@ -1577,11 +1588,17 @@
             yuyukoBoss.body.immovable = true;
             yuyukoBoss.bringToTop();
             bossSpawned = true;
-            bossHPbar = new HealthBar(game, {x: 256, y: 25, width: 500, height: 10});
+            var bgBar = new HealthBar(game, {x: 256, y: 25, width: 502, height: 12, bar: {color: '#0045fd'}}); //#B28C00 #002EA6 #FCFCFF #00B000 #BDAB35
+            bossHPbar = new HealthBar(game, {x: 256, y: 25, width: 500, height: 10, bar: {color: '#BDABFF'}, bg: {color: '#000000'}});//#AA9AB2 #A60B18 #BDABFF
+            bossHPbar.bgSprite.alpha = 0.8;
             bossText = game.add.text(10, 3, 'Yuyuko Saigyouji', { font: '12px Arial', fill: '#ff4500' });
             bossText.render = function(newText) {
                 bossText.text = newText;
             };
+            yuyukoBoss.events.onKilled.add(function() {
+                bossBGM.stop();
+                clearYuyukoBullets();
+            }, this);
 
         }
 
@@ -1668,7 +1685,21 @@
                 }
                 bossTransition.callAll('bringToTop');
             }
-            else if (yuyukoBoss.health <= 50 && yuyukoBoss.health >= 41) {
+            else if (yuyukoBoss.health <= 50 && yuyukoBoss.health >= 41 && bossPause) {
+                if (bossPauseTimer === 0) {
+                    phaseDefeatSFX.play();
+                }
+                bossPauseTimer++;
+                if (bossPauseTimer >= 100) {
+                    bossPause = false;
+                    yuyukoBoss.health = 50;
+                    phaseActivateSFX.play();
+                    // show boss card tween
+
+                }
+            }
+            else if (yuyukoBoss.health <= 50 && yuyukoBoss.health >= 41 && !bossPause) {
+                bossPauseTimer = 0;
                 // 1st SPELL CARD
                 bossText.render('Yuyuko Saigyouji: \'Nether Sign\' Passage to the Netherworld');
                 if (trnznData.trnznTimer % 74 === 0 && trnznData.trnznTimer % 148 === 0) {
@@ -1686,41 +1717,52 @@
                 bossWeaponNetherRotationLT.fire();
                 bossWeaponNetherRotationRT.fire();
             }
-            else if (yuyukoBoss.health <= 40 && yuyukoBoss.health >= 31) {
+            else if (yuyukoBoss.health <= 40 && yuyukoBoss.health >= 31 && !bossPause) {
+                if (bossPauseTimer === 0) {
+                    phaseDefeatSFX.play();
+                }
+                bossPauseTimer++;
+                if (bossPauseTimer >= 100) {
+                    bossPause = true;
+                    yuyukoBoss.health = 40;
+                    phaseActivateSFX.play();
+                    // show boss card tween
+
+                }
+            }
+            else if (yuyukoBoss.health <= 40 && yuyukoBoss.health >= 31 && bossPause) {
+                bossPauseTimer = 0;
                 // 2nd transition here
                 bossText.render('Yuyuko Saigyouji');
                 if (trnznData.trnznTimer % 17 === 0) {
                     // can definitely clean this up later
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
-                    getRandButterflyPoztn(0, 0, 512, 600);
-                    bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
+                    for (var k = 0; k < 6; k++) {
+                        getRandButterflyPoztn(0, 0, 512, 600);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                        getRandButterflyPoztn(0, 0, 512, 600);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
+                    }
                 }
             }
-            else if (yuyukoBoss.health <= 30 && yuyukoBoss.health >= 21) {
+            else if (yuyukoBoss.health <= 30 && yuyukoBoss.health >= 21 && bossPause) {
+                if (bossPauseTimer === 0) {
+                    phaseDefeatSFX.play();
+                }
+                bossPauseTimer++;
+                if (bossPauseTimer >= 100) {
+                    bossPause = false;
+                    yuyukoBoss.health = 30;
+                    phaseActivateSFX.play();
+                    // show boss card tween
+
+                }
+            }
+            else if (yuyukoBoss.health <= 30 && yuyukoBoss.health >= 21 && !bossPause) {
+                bossPauseTimer = 0;
                 bossText.render('Yuyuko Saigyouji: \'Ghost Sign\' Flight of the Butterflies');
                 if (trnznData.trnznTimer % 74 === 0 && trnznData.trnznTimer % 148 === 0) {
-                    bossButterflySFX.play();
+                    //bossButterflySFX.play();
+                    bossLaserSFX.play();
                     if (bossLaserSelection === 0) {
                         bossSpawnLaser(-123, 579, 800, -800, 'yuyukoLaser', bossLasers, 135); //PERFECT SHOOTING NE
                         bossLaserSelection++;
@@ -1730,14 +1772,26 @@
                         bossLaserSelection++;
                     }
                     else {
-                        bossSpawnLaser(512, 500, -800, 0, 'yuyukoLaser', bossLasers, 0); //PERFECT SHOOTING W
+                        bossSpawnLaser(691, 500, -800, 0, 'yuyukoLaser', bossLasers, 0); //PERFECT SHOOTING W
                         bossLaserSelection = 0;
                     }
-                    getRandOrbPoztn(0, 0, 512, 400);
-                    bossSpawnNetherBullet(netherBulletData.netherRandX, netherBulletData.netherRandY, 0, 0, 'yuyukoOrb', bossWeaponNetherSignTracker, true);
                 }
             }
-            else if (yuyukoBoss.health <= 20 && yuyukoBoss.health >= 11) {
+            else if (yuyukoBoss.health <= 20 && yuyukoBoss.health >= 11 && !bossPause) {
+                if (bossPauseTimer === 0) {
+                    phaseDefeatSFX.play();
+                }
+                bossPauseTimer++;
+                if (bossPauseTimer >= 100) {
+                    bossPause = true;
+                    yuyukoBoss.health = 20;
+                    phaseActivateSFX.play();
+                    // show boss card tween
+
+                }
+            }
+            else if (yuyukoBoss.health <= 20 && yuyukoBoss.health >= 11 && bossPause) {
+                bossPauseTimer = 0;
                 // 3rd transition here
                 bossText.render('Yuyuko Saigyouji');
                 if (trnznData.trnznTimer % 34 === 0) {
@@ -1755,12 +1809,27 @@
                     }
                 }
             }
-            else if (yuyukoBoss.health <= 10) {
+            else if (yuyukoBoss.health <= 10 && bossPause) {
+                if (bossPauseTimer === 0) {
+                    phaseDefeatSFX.play();
+                }
+                bossPauseTimer++;
+                if (bossPauseTimer >= 100) {
+                    bossPause = false;
+                    yuyukoBoss.health = 10;
+                    phaseActivateSFX.play();
+                    // show boss card tween
+
+                }
+            }
+            else if (yuyukoBoss.health <= 10 && !bossPause) {
                 bossText.render('Yuyuko Saigyouji: \'Bloom Nobly\' Border of Life');
             }
             else if (yuyukoBoss.health <= 0) {
                 // clear screen
                 clearYuyukoBullets();
+                console.log('hello');
+                bossBGM.pause();
                 //ending screen here
             }
             trnznData.trnznTimer++;
