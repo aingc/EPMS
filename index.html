@@ -222,6 +222,18 @@
         var bossLaserExplode;
         var bossLasers;
         var bossLaserSelection = 0;
+        // Phase 3
+        var bossWeaponBloomLT;
+        var bossWeaponBloomRT;
+        var bossWeaponBloomTimer = 0;
+        const bossWeaponBloomFireRate = 16;
+        const bossWeaponBloomBulletSpeed = 50;
+        var bossWeaponBorderTimer = 0;
+        var bossWeaponBorderSwitch = 0;
+        var bossBorderYellow;
+        var bossBorderBlue;
+        var bossBorderGreen;
+        var bossBorderRed;
 
         // Enemy Weapons
         var aimGruntWeapons = [];
@@ -425,7 +437,7 @@
                 bullet.body.setCircle(6, 7.4, 10.5);
             }, this);
 
-            // Boss Phaser 2 Weapons 'Ghost Sign'
+            // Boss Phase 2 Weapons 'Ghost Sign'
             bossLaserExplode = game.add.emitter(0, 0, 500);
             bossLaserExplode.enableBody = true;
             bossLaserExplode.physicsBodyType = Phaser.Physics.ARCADE;
@@ -438,6 +450,75 @@
             bossLaserExplode.makeParticles('butterflyBlue');
             bossLaserExplode.gravity = 0;
 
+            // Boss Phase 3 Weapons 'Bloom Nobly'
+            bossWeaponBloomLT = game.add.weapon(250, 'yuyukoBullet');
+            bossWeaponBloomLT.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            bossWeaponBloomLT.bulletSpeed = bossWeaponBloomBulletSpeed;
+            bossWeaponBloomLT.fireRate = 16;
+            bossWeaponBloomLT.fireFrom.setTo(128, 140, 1, 1);
+            bossWeaponBloomLT.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 1;
+            }, this);
+            bossWeaponBloomRT = game.add.weapon(250, 'yuyukoBullet');
+            bossWeaponBloomRT.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            bossWeaponBloomRT.bulletSpeed = bossWeaponBloomBulletSpeed;
+            bossWeaponBloomRT.fireRate = 16;
+            bossWeaponBloomRT.fireFrom.setTo(364, 140, 1, 1);
+            bossWeaponBloomRT.bullets.forEach(function(bullet) {
+                bullet.damageAmount = 1;
+            }, this);
+            bossBorderRed = game.add.group();
+            bossBorderRed.enableBody = true;
+            bossBorderRed.physicsBodyType = Phaser.Physics.ARCADE;
+            bossBorderRed.createMultiple(56, 'butterflyRed');
+            bossBorderRed.forEach(function(butterfly) {
+                butterfly.anchor.setTo(0.5);
+                butterfly.outOfBoundsKill = true;
+                butterfly.checkWorldBounds = true;
+                butterfly.damageAmount = 1;
+                butterfly.body.immovable = true;
+                butterfly.body.setCircle(7, 7.4, 10.5);
+                butterfly.angle = 90;
+            }, this);
+            bossBorderYellow = game.add.group();
+            bossBorderYellow.enableBody = true;
+            bossBorderYellow.physicsBodyType = Phaser.Physics.ARCADE;
+            bossBorderYellow.createMultiple(50, 'butterflyYellow');
+            bossBorderYellow.forEach(function(butterfly) {
+                butterfly.anchor.setTo(0.5);
+                butterfly.outOfBoundsKill = true;
+                butterfly.checkWorldBounds = true;
+                butterfly.damageAmount = 1;
+                butterfly.body.immovable = true;
+                butterfly.body.setCircle(7, 7.4, 10.5);
+                butterfly.angle = 90;
+            }, this);
+            bossBorderGreen = game.add.group();
+            bossBorderGreen.enableBody = true;
+            bossBorderGreen.physicsBodyType = Phaser.Physics.ARCADE;
+            bossBorderGreen.createMultiple(43, 'butterflyGreen');
+            bossBorderGreen.forEach(function(butterfly) {
+                butterfly.anchor.setTo(0.5);
+                butterfly.outOfBoundsKill = true;
+                butterfly.checkWorldBounds = true;
+                butterfly.damageAmount = 1;
+                butterfly.body.immovable = true;
+                butterfly.body.setCircle(7, 7.4, 10.5);
+                butterfly.angle = 90;
+            }, this);
+            bossBorderBlue = game.add.group();
+            bossBorderBlue.enableBody = true;
+            bossBorderBlue.physicsBodyType = Phaser.Physics.ARCADE;
+            bossBorderBlue.createMultiple(37, 'butterflyBlue');
+            bossBorderBlue.forEach(function(butterfly) {
+                butterfly.anchor.setTo(0.5);
+                butterfly.outOfBoundsKill = true;
+                butterfly.checkWorldBounds = true;
+                butterfly.damageAmount = 1;
+                butterfly.body.immovable = true;
+                butterfly.body.setCircle(7, 7.4, 10.5);
+                butterfly.angle = 90;
+            }, this);
             /*bossTrnznTwo = game.add.group();
             bossTrnznTwo.enableBody = true;
             bossTrnznTwo.physicsBodyType = Phaser.Physics.ARCADE;
@@ -639,6 +720,8 @@
                     game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherRotationLT.bullets, playerCollide, null, this);
                     game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherRotationRT.bullets, playerCollide, null, this);
                     game.physics.arcade.overlap(playerHurtbox, bossLaserExplode, playerCollide, null, this);
+                    game.physics.arcade.overlap(playerHurtbox, bossWeaponBloomLT.bullets, playerCollide, null, this);
+                    game.physics.arcade.overlap(playerHurtbox, bossWeaponBloomRT.bullets, playerCollide, null, this);
                     // and more boss weapons colliding with player
                 }
                 game.physics.arcade.overlap(singleShot.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
@@ -650,6 +733,8 @@
                 game.physics.arcade.overlap(bossWeaponNetherRotationLT.bullets, playerBombs, bombCycloneCollide, null, this);
                 game.physics.arcade.overlap(bossWeaponNetherRotationRT.bullets, playerBombs, bombCycloneCollide, null, this);
                 game.physics.arcade.overlap(bossLaserExplode, playerBombs, bombCycloneCollide, null, this);
+                game.physics.arcade.overlap(bossWeaponBloomLT, playerBombs, bombCycloneCollide, null, this);
+                game.physics.arcade.overlap(bossWeaponBloomRT, playerBombs, bombCycloneCollide, null, this);
                 // all other boss weapons with bomb
                 //game.physics.arcade.overlap(__SOME OTHER BOSS WEAPON__, playerBombs, bombCycloneCollide, null, this);
 
@@ -1066,6 +1151,12 @@
                 }, this);
                 bossLaserExplode.forEachAlive(function(laserExplode) {
                     game.physics.arcade.moveToObject(laserExplode, tempBombSprite.body, 600);
+                }, this);
+                bossWeaponBloomLT.bullets.forEachAlive(function(bloomBullet) {
+                    game.physics.arcade.moveToObject(bloomBullet, tempBombSprite.body, 600);
+                }, this);
+                bossWeaponBloomRT.bullets.forEachAlive(function(bloomBullet) {
+                    game.physics.arcade.moveToObject(bloomBullet, tempBombSprite.body, 600);
                 }, this);
                 // and any more boss weapons to vacuum
             }
@@ -1520,17 +1611,29 @@
             netherBulletData.netherRandY = getRandomTransitions(tempMinY, tempMaxY);
         }
 
-        function bossSpawnButterfly(x, y, xVel, yVel, spriteName, groupName) {
-            var newButterfly = groupName.create(x, y, spriteName);
-            newButterfly.anchor.setTo(0.5);
-            newButterfly.outOfBoundsKill = true;
-            newButterfly.checkWorldBounds = true;
-            newButterfly.damageAmount = 1;
-            newButterfly.body.immovable = true;
-            newButterfly.body.velocity.x = xVel;
-            newButterfly.body.velocity.y = yVel;
-            newButterfly.body.setCircle(6, 7.4, 10.5); // Perfect hitbox now
-            newButterfly.angle = 90;
+        function bossSpawnButterfly(x, y, xVel, yVel, spriteName, groupName, isBorder) {
+            if (!isBorder) {
+                var newButterfly = groupName.create(x, y, spriteName);
+                newButterfly.anchor.setTo(0.5);
+                newButterfly.outOfBoundsKill = true;
+                newButterfly.checkWorldBounds = true;
+                newButterfly.damageAmount = 1;
+                newButterfly.body.immovable = true;
+                newButterfly.body.velocity.x = xVel;
+                newButterfly.body.velocity.y = yVel;
+                newButterfly.body.setCircle(6, 7.4, 10.5); // Perfect hitbox now
+                newButterfly.angle = 90;
+            }
+            else {
+                var tempChild = groupName.getFirstExists(false);
+                if (tempChild !== null) {
+                    tempChild.reset(x, y);
+                    tempChild.anchor.setTo(0.5);
+                    tempChild.body.velocity.x = xVel;
+                    tempChild.body.velocity.y = yVel;
+                    console.log(tempChild.body.x);
+                }
+            }
         }
 
         function bossSpawnNetherBullet(x, y, xVel, yVel, spriteName, groupName, follow) {
@@ -1680,7 +1783,7 @@
                 if (trnznData.trnznTimer % 17 === 0) {
                     for (var j = 0; j < 6; j++) {
                         getRandButterflyPoztn(0, 0, 512, 600);
-                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition, false);
                     }
                 }
                 bossTransition.callAll('bringToTop');
@@ -1738,9 +1841,9 @@
                     // can definitely clean this up later
                     for (var k = 0; k < 6; k++) {
                         getRandButterflyPoztn(0, 0, 512, 600);
-                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyCyan', bossTransition, false);
                         getRandButterflyPoztn(0, 0, 512, 600);
-                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition, false);
                     }
                 }
             }
@@ -1797,15 +1900,15 @@
                 if (trnznData.trnznTimer % 34 === 0) {
                     for (var i = 0; i < 3; i++) {
                         getRandButterflyPoztn(0, 0, 512, 600);
-                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyRed', bossTransition);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyRed', bossTransition, false);
                         getRandButterflyPoztn(0, 0, 512, 600);
-                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyPurple', bossTransition);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyPurple', bossTransition, false);
                         getRandButterflyPoztn(0, 0, 512, 600);
-                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyBlue', bossTransition);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyBlue', bossTransition, false);
                         getRandButterflyPoztn(0, 0, 512, 600);
-                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyGreen', bossTransition, false);
                         getRandButterflyPoztn(0, 0, 512, 600);
-                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyBlack', bossTransition);
+                        bossSpawnButterfly(trnznData.trnznRandX, 2, 0, 75, 'butterflyBlack', bossTransition, false);
                     }
                 }
             }
@@ -1824,6 +1927,61 @@
             }
             else if (yuyukoBoss.health <= 10 && !bossPause) {
                 bossText.render('Yuyuko Saigyouji: \'Bloom Nobly\' Border of Life');
+
+                // BORDER STUFF HERE
+                // 1st layer of butterfly border
+                bossBorderRed.forEachAlive(function(butterfly) {
+                    console.log(butterfly.body.y);
+                    if (butterfly.body.y >= 550 && butterfly.angle === 90) {
+                        // move right
+                        butterfly.body.velocity.x = 100;
+                        butterfly.body.velocity.y = 0;
+                        butterfly.angle = 0;
+                        console.log('turning right');
+                    }
+                    if (butterfly.body.x >= 502 && butterfly.angle === 0) { // sub 7.6 from original x value from greenfoot
+                        // move up
+                        butterfly.body.velocity.x = 0;
+                        butterfly.body.velocity.y = -100;
+                        butterfly.angle = 270;
+                        console.log('turning up');
+                    }
+                    if (butterfly.body.y <= 100 && butterfly.angle === 270) {
+                        // move left
+                        butterfly.body.velocity.x = -100;
+                        butterfly.body.velocity.y = 0;
+                        butterfly.angle = 180;
+                        console.log('turning left');
+                    }
+                    if (butterfly.body.x <= -6 && butterfly.angle === 180) {
+                        // move down
+                        butterfly.body.velocity.x = 0;
+                        butterfly.body.velocity.y = 100;
+                        butterfly.angle = 90;
+                        console.log('turning down');
+                    }
+                }, this);
+                // 2nd, 3rd, and 4th should be here
+                if (game.time.now > bossWeaponBorderTimer) {
+                    bossSpawnButterfly(2, 2, 0, 100, 'butterflyYellow', bossBorderRed, true);
+                    bossWeaponBorderTimer = game.time.now + 1000;
+                    console.log('spawned');
+                }
+                //if (bossWeaponBorderTimer % 20 === 0 && yuyukoBoss.health <= some health)
+
+                // Bloom Weapons
+                if (bossWeaponBloomTimer === 0) {
+                    bossWeaponBloomLT.fire();
+                    bossWeaponBloomRT.fire();
+                    bossWeaponBloomTimer = game.time.now + bossWeaponBloomFireRate;
+                }
+                else if (game.time.now > bossWeaponBloomTimer) {
+                    bossWeaponBloomLT.fireAngle += 25;
+                    bossWeaponBloomRT.fireAngle -= 25;
+                    bossWeaponBloomLT.fire();
+                    bossWeaponBloomRT.fire();
+                    bossWeaponBloomTimer = game.time.now + bossWeaponBloomFireRate;
+                }
             }
             else if (yuyukoBoss.health <= 0) {
                 // clear screen
@@ -1843,6 +2001,8 @@
             bossWeaponNetherSignTracker.callAllExists('kill', true);
             bossLasers.callAllExists('kill', true);
             bossLaserExplode.callAllExists('kill', true);
+            bossWeaponBloomLT.bullets.callAllExists('kill', true);
+            bossWeaponBloomRT.bullets.callAllExists('kill', true);
             // and any other boss weapons
         }
         // Stage 01
