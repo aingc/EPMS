@@ -13,8 +13,8 @@
         var game = new Phaser.Game(512, 600, Phaser.AUTO, 'container', {
             preload: preload,
             create: create,
-            update: update
-            //render: render
+            update: update,
+            render: render
         });
 
         function preload() {
@@ -32,6 +32,7 @@
             game.load.image('butterflyBlack', './assets/Boss/bossBullets/butterflyBLACK.png');
             game.load.image('yuyukoBullet', './assets/Boss/bossBullets/yuyukoBullet.png');
             game.load.image('yuyukoOrb', './assets/Boss/bossBullets/yuyukoOrb.png');
+            game.load.image('yuyukoLaser', './assets/Boss/bossBullets/yuyukoLaser.png');
             game.load.image('aimGruntShot', './assets/Enemy/enemyBullets/aimGruntShot.png');
             game.load.image('straightGruntShot', './assets/Enemy/enemyBullets/straightGruntShot.png');
             game.load.image('rotateGruntShot', './assets/Enemy/enemyBullets/rotateGruntShot.png');
@@ -137,7 +138,7 @@
             spreadShotDamage: 2,
             maxPowerBulletSpeed: 800,
             maxPowerBulletFireRate: 80,
-            maxPowerBulletDamage: 3,
+            maxPowerBulletDamage: 1,
             bombDamage: 48
         };
         var rotateGruntTimers = [];
@@ -209,6 +210,10 @@
             trnznTimer: 0,
             trnznSFXTimer: 0
         };
+        // Phase 2
+        var bossLaserExplode;
+        var bossLasers;
+        var bossLaserSelection = 0;
 
         // Enemy Weapons
         var aimGruntWeapons = [];
@@ -221,11 +226,11 @@
         // weapon.Bullets is a group
         function create() {
             // Scrolling Background
-            bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
+            /*bg = game.add.tileSprite(0, 0, 512, 600, 'stage01BG');
 
             // Music and SFX
             bgm = game.add.audio('stage01BGM');
-            bgm.play();
+            bgm.play();*/
             bossBGM = game.add.audio('stage01BossBGM');
             bossButterflySFX = game.add.audio('yuyukoButterflySFX');
             bossButterflySFX.volume = 0.4;
@@ -379,6 +384,9 @@
             bossWeaponNetherSignTracker = game.add.group();
             bossWeaponNetherSignTracker.enableBody = true;
             bossWeaponNetherSignTracker.physicsBodyType = Phaser.Physics.ARCADE;
+            bossLasers = game.add.group();
+            bossLasers.enableBody = true;
+            bossLasers.physicsBodyType = Phaser.Physics.ARCADE;
 
             // Boss Phase 1 Weapons 'Nether Sign'
             bossWeaponNetherRotationLT = game.add.weapon(200, 'butterflyRed');
@@ -405,6 +413,19 @@
                 bullet.damageAmount = 1;
                 bullet.body.setCircle(6, 7.4, 10.5);
             }, this);
+
+            // Boss Phaser 2 Weapons 'Ghost Sign'
+            bossLaserExplode = game.add.emitter(0, 0, 500);
+            bossLaserExplode.enableBody = true;
+            bossLaserExplode.physicsBodyType = Phaser.Physics.ARCADE;
+            bossLaserExplode.forEach(function(butterfly) {
+                butterfly.outOfBoundsKill = true;
+                butterfly.checkWorldBounds = true;
+                butterfly.body.setCircle(6, 7.4, 10.5);
+                butterfly.damageAmount = 1;
+            }, this);
+            bossLaserExplode.makeParticles('butterflyBlue');
+            bossLaserExplode.gravity = 0;
 
             /*bossTrnznTwo = game.add.group();
             bossTrnznTwo.enableBody = true;
@@ -486,13 +507,25 @@
             });
 
             //spawnStraightGrunt(400, 200, 0, 0, 'yuyukoOrb', 'gruntStraightShot');
-            //spawnYuyuko();
+            spawnYuyuko();
+            // 256, 200
+            //bossSpawnLaser(56, 400, 0, 0, 'yuyukoLaser', bossLasers, 135); //spawn from 56, 400 and go NE
+            // laser diagonal length is 175.3624817
+            //spawn from (56 - 179, 0 - 179) and go SE actual coordinates before (56 - 248, 0 - 5.2) add 248 and add 5.2 to get real value from log
+            //bossSpawnLaser(-123, -179, 800, 800, 'yuyukoLaser', bossLasers, 45);
+            //bossSpawnLaser(56, 0, 0, 0, 'yuyukoLaser', bossLasers, 45); //Original shooting SE
+
+            // -371, -184.2
+            //bossSpawnLaser(760, 400, 0, 0, 'yuyukoLaser', bossLasers, 0); //spawn from 512 + 248, 400 and go west
         }
 
         function update() {
+            /*bossLasers.forEachAlive(function(self) {
+                console.log('x: ' + self.body.x + ', y: ' + self.body.y);
+            }, this);*/
             playerSprite.sendToBack();
             playerHurtbox.sendToBack();
-            bg.sendToBack();
+            /*bg.sendToBack();*/
             if (playerCardActive) {
                 playerCard.bringToTop();
                 console.log(playerCard.body.x);
@@ -563,7 +596,7 @@
             gruntRotateFire(rotateGrunts, rotateGruntWeapons, rotateGruntWeaponDIS);
 
             // Scroll the bg
-            bg.tilePosition.y += 2;
+            /*bg.tilePosition.y += 2;*/
 
             // Check game over
             if (!playerHurtbox.alive && gameOverText.visible === false) {
@@ -575,14 +608,14 @@
             }
 
             // Display POC Line at the beginning and check for breaches
-            displayPOCLine();
-            checkPOClineBreach();
+            /*displayPOCLine();
+            checkPOClineBreach();*/
 
-            startStageOne();
+            /*startStageOne();
             if (bgm.volume <= 0) {
                 bgm.stop();
                 console.log('bgm stopped');
-            }
+            }*/
             if (bossSpawned) {
                 // boss movement
                 yuyukoFloat();
@@ -594,6 +627,7 @@
                     game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherSignTracker, playerCollide, null, this);
                     game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherRotationLT.bullets, playerCollide, null, this);
                     game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherRotationRT.bullets, playerCollide, null, this);
+                    game.physics.arcade.overlap(playerHurtbox, bossLaserExplode, playerCollide, null, this);
                     // and more boss weapons colliding with player
                 }
                 game.physics.arcade.overlap(singleShot.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
@@ -604,6 +638,7 @@
                 game.physics.arcade.overlap(bossWeaponNetherSignTracker, playerBombs, bombCycloneCollide, null, this);
                 game.physics.arcade.overlap(bossWeaponNetherRotationLT.bullets, playerBombs, bombCycloneCollide, null, this);
                 game.physics.arcade.overlap(bossWeaponNetherRotationRT.bullets, playerBombs, bombCycloneCollide, null, this);
+                game.physics.arcade.overlap(bossLaserExplode, playerBombs, bombCycloneCollide, null, this);
                 // all other boss weapons with bomb
                 //game.physics.arcade.overlap(__SOME OTHER BOSS WEAPON__, playerBombs, bombCycloneCollide, null, this);
 
@@ -614,6 +649,10 @@
                 // check bomb collision with yuyukoBoss
 
                 // boss shoot (check hp, and change spell card accordingly)
+                bossLasers.forEachAlive(function(laser) {
+                    burstLaser(laser.body.x, laser.body.y, 2);
+                    console.log('bursted');
+                }, this);
                 checkYuyukoHealthAndShoot();
                 bossTransition.callAll('bringToTop');
                 yuyukoBoss.moveDown();
@@ -641,6 +680,7 @@
             focusShotLT.bullets.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             focusShotRT.bullets.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.4)');
             bossTransition.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.8)');
+            bossLasers.forEachAlive(renderGroup, this, 'rgba(0, 0, 255, 0.8)');
             playerBombs.forEachAlive(renderGroup, this, 'rgba(255, 0, 0, 0.8)');
         }
 
@@ -1013,6 +1053,9 @@
                 bossWeaponNetherRotationRT.bullets.forEachAlive(function(netherButterfly) {
                     game.physics.arcade.moveToObject(netherButterfly, tempBombSprite.body, 600);
                 }, this);
+                bossLaserExplode.forEachAlive(function(laserExplode) {
+                    game.physics.arcade.moveToObject(laserExplode, tempBombSprite.body, 600);
+                }, this);
                 // and any more boss weapons to vacuum
             }
         }
@@ -1058,6 +1101,12 @@
             largeP.setYSpeed(spriteYvel);
             largeP.setRotation(0, 0);
             largeP.start(true, 3500, null, amount);
+        }
+
+        function burstLaser(spriteX, spriteY, amount) {
+            bossLaserExplode.x = spriteX;
+            bossLaserExplode.y = spriteY;
+            bossLaserExplode.start(true, 4000, 0, amount, true); //Maybe could tone down to 3500 instead
         }
 
         // Display POC Line
@@ -1144,8 +1193,8 @@
 
         function playerCollide(player, enemy) {
             console.log('enemy collide');
-            player.damage(enemy.damageAmount);
-            playerSprite.damage(enemy.damageAmount);
+            player.damage(1);
+            playerSprite.damage(1);
             lifeText.render();
             playerDeathSFX.play();
             playerPowerNerf();
@@ -1164,6 +1213,7 @@
             clearGruntBullets();
             if (bossSpawned) {
                 clearYuyukoBullets();
+                //clear bossLaserExplode particles;
             }
         }
 
@@ -1489,6 +1539,32 @@
 
         }
 
+        function bossSpawnLaser(x, y, xVel, yVel, spriteName, groupName, angle) {
+            var newLaser = groupName.create(x, y, spriteName);
+            newLaser.anchor.setTo(0.5);
+            newLaser.outOfBoundsKill = true;
+            newLaser.checkWorldBounds = true;
+            newLaser.damageAmount = 1;
+            newLaser.body.immovable = true;
+            newLaser.body.velocity.x = xVel;
+            newLaser.body.velocity.y = yVel;
+            newLaser.scale.setTo(2, 1.3);
+            // NE - (206, -130)
+            // SE - (206, 130)
+            // SW - (37, 130)
+            // W - (0, 0)
+            if (angle === 225) {
+                newLaser.body.setSize(5, (10/1.3), 206, 130);
+            }
+            else if (angle === 135) {
+                newLaser.body.setSize(5, (10)/1.3, 206, -130);
+            }
+            else if (angle === 0) {
+                newLaser.body.setSize(5, (10/1.3), 0, 0);
+            }
+            newLaser.angle = angle;
+        }
+
         function spawnYuyuko() {
             bossBGM.loop = true;
             bossBGM.play();
@@ -1643,6 +1719,23 @@
             }
             else if (yuyukoBoss.health <= 30 && yuyukoBoss.health >= 21) {
                 bossText.render('Yuyuko Saigyouji: \'Ghost Sign\' Flight of the Butterflies');
+                if (trnznData.trnznTimer % 74 === 0 && trnznData.trnznTimer % 148 === 0) {
+                    bossButterflySFX.play();
+                    if (bossLaserSelection === 0) {
+                        bossSpawnLaser(-123, 579, 800, -800, 'yuyukoLaser', bossLasers, 135); //PERFECT SHOOTING NE
+                        bossLaserSelection++;
+                    }
+                    else if (bossLaserSelection === 1) {
+                        bossSpawnLaser(-123, -179, 800, 800, 'yuyukoLaser', bossLasers, 225); //PERFECT SHOOTING SE
+                        bossLaserSelection++;
+                    }
+                    else {
+                        bossSpawnLaser(512, 500, -800, 0, 'yuyukoLaser', bossLasers, 0); //PERFECT SHOOTING W
+                        bossLaserSelection = 0;
+                    }
+                    getRandOrbPoztn(0, 0, 512, 400);
+                    bossSpawnNetherBullet(netherBulletData.netherRandX, netherBulletData.netherRandY, 0, 0, 'yuyukoOrb', bossWeaponNetherSignTracker, true);
+                }
             }
             else if (yuyukoBoss.health <= 20 && yuyukoBoss.health >= 11) {
                 // 3rd transition here
@@ -1676,7 +1769,11 @@
 
         function clearYuyukoBullets() {
             bossTransition.callAllExists('kill', true);
+            bossWeaponNetherRotationLT.bullets.callAllExists('kill', true);
+            bossWeaponNetherRotationRT.bullets.callAllExists('kill', true);
             bossWeaponNetherSignTracker.callAllExists('kill', true);
+            bossLasers.callAllExists('kill', true);
+            bossLaserExplode.callAllExists('kill', true);
             // and any other boss weapons
         }
         // Stage 01
