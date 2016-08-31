@@ -70,7 +70,7 @@
             score: 0,
             graze: 0,
             bomb: 2,
-            power: 4000,
+            power: 0,
             lives: 10, // 0
             weaponName: 'SINGLE SHOT',
             bombTimer: 0,
@@ -88,7 +88,7 @@
         var pocLine;
         var fadeInPOCtext;
         var fadeInPOCline;
-        var gameTimer = 4450;
+        var gameTimer = 0;
         const playerPhysicsStats = {
             normalVelocity: 275,
             focusVelocity: 150,
@@ -385,6 +385,7 @@
             game.physics.arcade.enable(playerSprite);
             playerHurtbox.body.collideWorldBounds = true;
             playerHurtbox.body.setCircle(6, 1);
+            //playerHurtbox.body.setCircle(4, 3, 2); need to set this before release
             playerSprite.body.collideWorldBounds = true;
             console.log('hitbox x: ' + playerHurtbox.body.x + ', y: ' + playerHurtbox.body.y + ', ' + 'offset' + playerHurtbox.offsetX + ', ' + playerHurtbox.offsetY);
             console.log('sprite x: ' + playerSprite.body.x + ', y: ' + playerSprite.body.y + ', ' + 'offset' + playerSprite.offsetX + ', ' + playerSprite.offsetY);
@@ -601,18 +602,6 @@
                 explode.animations.add('gruntDeathExplode');
                 explode.scale.setTo(1.5, 1.5);
             });
-
-            //spawnStraightGrunt(400, 200, 0, 0, 'yuyukoOrb', 'gruntStraightShot');
-            //spawnYuyuko();
-            // 256, 200
-            //bossSpawnLaser(56, 400, 0, 0, 'yuyukoLaser', bossLasers, 135); //spawn from 56, 400 and go NE
-            // laser diagonal length is 175.3624817
-            //spawn from (56 - 179, 0 - 179) and go SE actual coordinates before (56 - 248, 0 - 5.2) add 248 and add 5.2 to get real value from log
-            //bossSpawnLaser(-123, -179, 800, 800, 'yuyukoLaser', bossLasers, 45);
-            //bossSpawnLaser(56, 0, 0, 0, 'yuyukoLaser', bossLasers, 45); //Original shooting SE
-
-            // -371, -184.2
-            //bossSpawnLaser(760, 400, 0, 0, 'yuyukoLaser', bossLasers, 0); //spawn from 512 + 248, 400 and go west
         }
 
         function update() {
@@ -1003,11 +992,11 @@
                 doubleShot.fire();
 
                 focusShotLT.bullets.forEachAlive(function(bullet) {
-                    bullet.damageAmount = weaponStats.spreadShotDamage + 2;
+                    bullet.damageAmount = weaponStats.spreadShotDamage;
                     bullet.body.setSize(30, 13, -9, 9);
                 }, this);
                 focusShotRT.bullets.forEachAlive(function(bullet) {
-                    bullet.damageAmount = weaponStats.spreadShotDamage + 2;
+                    bullet.damageAmount = weaponStats.spreadShotDamage;
                     bullet.body.setSize(30, 13, -9, 9);
                 }, this);
 
@@ -1048,11 +1037,11 @@
                 doubleShot.fire();
 
                 focusShotLT.bullets.forEachAlive(function(bullet) {
-                    bullet.damageAmount = weaponStats.maxPowerBulletDamage + 3;
+                    bullet.damageAmount = weaponStats.maxPowerBulletDamage;
                     bullet.body.setSize(30, 13, -9, 9);
                 }, this);
                 focusShotRT.bullets.forEachAlive(function(bullet) {
-                    bullet.damageAmount = weaponStats.maxPowerBulletDamage + 3;
+                    bullet.damageAmount = weaponStats.maxPowerBulletDamage;
                     bullet.body.setSize(30, 13, -9, 9);
                 }, this);
 
@@ -1077,7 +1066,6 @@
                 revealCard(100, 450, -40, 0, 'playerCard'); // old y is 300
                 game.physics.arcade.moveToXY(newBomb, game.world.centerX, game.world.centerY);
                 playerStats.bomb--;
-                playerStats.power = Math.floor(playerStats.power * 0.75);
                 powerText.render();
                 bombText.render();
                 playerBombSFX.onStop.add(function() {
@@ -1307,7 +1295,7 @@
         }
 
         function playerPowerNerf() {
-            playerStats.power = Math.floor(playerStats.power/2);
+            playerStats.power = Math.floor(playerStats.power * 0.9);
             if (playerStats.power < 0) {
                 playerStats.power = 0;
             }
@@ -1722,6 +1710,7 @@
             };
             yuyukoBoss.events.onKilled.add(function() {
                 bossBGM.stop();
+                clearYuyukoBullets();
                 clearYuyukoBullets();
             }, this);
 
