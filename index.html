@@ -20,6 +20,9 @@
         function preload() {
             game.load.image('stage01BG', './assets/Background/stage01blue.png');
             game.load.image('stage01BossBG', './assets/Background/stage01BossBG.png');
+            game.load.image('fade', './assets/Background/fade.png');
+            game.load.image('titleBG', './assets/Background/titleBG.png');
+            game.load.spritesheet('titleButton', './assets/Buttons/titleButtonSheet.png', 160, 57);
             game.load.image('sanaeHurtbox', './assets/Player/playerHurtbox.png');
             game.load.image('sanae', './assets/Player/playerStand.png');
             game.load.image('yuyuko', './assets/Boss/yuyuko.png');
@@ -78,12 +81,14 @@
             focusActive: false
         };
         const bossMaxHP = 6000;
+        var readyToPlay = false;
         var lifeText;
         var scoreText;
         var powerText;
         var weaponText;
         var bombText;
         var gameOverText;
+        var gameClearText;
         var pocLineText;
         var pocLine;
         var fadeInPOCtext;
@@ -98,9 +103,9 @@
             playerSpriteYrespawn: 428
         };
         const enemyStats = {
-            aimGruntHP: 10,
-            straightGruntHP: 16,
-            rotateGruntHP: 24,
+            aimGruntHP: 5,
+            straightGruntHP: 8,
+            rotateGruntHP: 12,
             gruntXvelocity: 50,
             gruntYvelocity: 50,
             gruntStraightVelocity: 100,
@@ -128,29 +133,34 @@
             singleShotBulletSpeed: 850,
             singleShotBulletFireRate: 90,
             singleShotBulletAngleOffSet: 90,
-            singleShotDamage: 4,
+            singleShotDamage: 2,
             doubleShotBulletSpeed: 900,
-            doubleShotBulletFireRate: 80,
+            doubleShotBulletFireRate: 85,
             doubleShotBulletAngleOffSet: 90,
-            doubleShotDamage: 5,
+            doubleShotDamage: 3,
             waveShotBulletSpeed: 850,
             waveShotBulletFireRate: 180,
             waveShotDamage: 1,
             spreadShotBulletSpeed: 900,
             spreadShotBulletFireRate: 70,
             spreadShotBulletAngleVariance: 10,
-            spreadShotDamage: 2,
+            spreadShotDamage: 1,
             maxPowerBulletSpeed: 800,
             maxPowerBulletFireRate: 80,
             maxPowerBulletDamage: 1,
-            bombDamage: 48
+            bombDamage: 24
         };
         var rotateGruntTimers = [];
         var counterClockwiseShootID = [];
 
-        // Sound
+        // Backgrounds
+        var titleBg;
+        var titleButton;
         var bg;
         var bossBG;
+        var fadeBG;
+
+        // Sound
         var bgm;
 
         var bossBGM;
@@ -197,6 +207,8 @@
 
         // Boss Variables
         var yuyukoBoss;
+        var bossCard;
+        var bossCardActive = false;
         var bossDeathSFX;
         var bossSpawned = false;
         var yuyukoFloatUp = false;
@@ -230,13 +242,13 @@
         var bossWeaponBloomRT;
         var bossWeaponBloomTimer = 0;
         const bossWeaponBloomFireRate = 16;
-        const bossWeaponBloomBulletSpeed = 50;
+        const bossWeaponBloomBulletSpeed = 75;
         var bossWeaponBorderTimer = 0;
-        var bossWeaponBorderSwitch = 0;
         var bossBorderYellow;
         var bossBorderBlue;
         var bossBorderGreen;
         var bossBorderRed;
+        var killedBoss = false;
 
         // Enemy Weapons
         var aimGruntWeapons = [];
@@ -254,7 +266,7 @@
 
             // Music and SFX
             bgm = game.add.audio('stage01BGM');
-            bgm.play();
+            //bgm.play();
             bossBGM = game.add.audio('stage01BossBGM');
             bossButterflySFX = game.add.audio('yuyukoButterflySFX');
             bossButterflySFX.volume = 0.4;
@@ -316,7 +328,7 @@
             doubleShot.bulletSpeed = weaponStats.singleShotBulletSpeed;
             doubleShot.fireRate = weaponStats.singleShotBulletFireRate;
             doubleShot.bullets.forEach(function(bullet) {
-               bullet.damageAmount = 5;
+               bullet.damageAmount = weaponStats.doubleShotDamage;
             });
 
             // Wave Shot, Spread Shot, and Max Power
@@ -563,6 +575,12 @@
             gameOverText.anchor.setTo(0.5);
             gameOverText.visible = false;
 
+                // Game Clear
+            gameClearText = game.add.text(game.world.centerX, game.world.centerY, 'WELL PLAYED!\nYou finished with a score of:\n' + playerStats.score, {font: '30px Arial', fill: '#fff'});
+            gameClearText.anchor.setTo(0.5);
+            gameClearText.visible = false;
+
+
                 // Weapon
             weaponText = game.add.text(300, game.world.height - 40, playerStats.weaponName, {font: '30px Arial', fill: '#00FFFF'});
             weaponText.render = function() {
@@ -602,174 +620,197 @@
                 explode.animations.add('gruntDeathExplode');
                 explode.scale.setTo(1.5, 1.5);
             });
+            titleBg = game.add.tileSprite(0, 0, 512, 600, 'titleBG');
+            titleBg.bringToTop();
+            titleButton = game.add.button(game.world.centerX - 80, game.world.centerY - 28.5, 'titleButton', function() {
+                readyToPlay = true;
+                titleBg.visible = false;
+                titleButton.visible = false;
+                bgm.play();
+            }, this, 1, 0, 2);
         }
 
         function update() {
-            playerSprite.sendToBack();
-            playerHurtbox.sendToBack();
-            if (!bossSpawned) {
-                bg.sendToBack();
-                bossBG.sendToBack();
-            }
-            else if (bossSpawned) {
-                bossBG.sendToBack();
-                bg.sendToBack();
-            }
-
-            if (playerCardActive) {
-                playerCard.bringToTop();
-                console.log(playerCard.body.x);
-                if (playerCard.body.x <= -117) {
-                    playerCard.kill();
-                    playerCardActive = false;
+            if (readyToPlay) {
+                playerSprite.sendToBack();
+                playerHurtbox.sendToBack();
+                if (!bossSpawned) {
+                    bg.sendToBack();
+                    bossBG.sendToBack();
                 }
-            }
-            smallP.callAll('bringToTop');
-            largeP.callAll('bringToTop');
-            aimGrunts.callAll('bringToTop');
-            straightGrunts.callAll('bringToTop');
-            rotateGrunts.callAll('bringToTop');
-            bombDispersal.callAll('bringToTop');
-            playerHurtbox.body.velocity.x = 0;
-            playerHurtbox.body.velocity.y = 0;
-            playerSprite.body.velocity.x = 0;
-            playerSprite.body.velocity.y = 0;
+                else if (bossSpawned) {
+                    bossBG.sendToBack();
+                    bg.sendToBack();
+                }
 
-            // Collision Checking
+                if (playerCardActive) {
+                    playerCard.bringToTop();
+                    if (playerCard.body.x <= -117) {
+                        playerCard.kill();
+                        playerCardActive = false;
+                    }
+                }
+                if (bossCardActive) {
+                    bossCard.bringToTop();
+                    if (bossCard.body.x >= 440) {
+                        bossCard.kill();
+                        bossCardActive = false;
+                    }
+                }
+                smallP.callAll('bringToTop');
+                largeP.callAll('bringToTop');
+                aimGrunts.callAll('bringToTop');
+                straightGrunts.callAll('bringToTop');
+                rotateGrunts.callAll('bringToTop');
+                bombDispersal.callAll('bringToTop');
+                playerHurtbox.body.velocity.x = 0;
+                playerHurtbox.body.velocity.y = 0;
+                playerSprite.body.velocity.x = 0;
+                playerSprite.body.velocity.y = 0;
+
+                // Collision Checking
                 // aimGrunts
-            if (!playerStats.bombActive) {
-                game.physics.arcade.overlap(playerHurtbox, aimGrunts, playerCollide, null, this);
-            }
-            game.physics.arcade.overlap(singleShot.bullets, aimGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(doubleShot.bullets, aimGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(waveShotLT.bullets, aimGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(waveShotRT.bullets, aimGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(focusShotLT.bullets, aimGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(focusShotRT.bullets, aimGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(bombDispersal, aimGrunts, bulletCollide, null, this);
+                if (!playerStats.bombActive) {
+                    game.physics.arcade.overlap(playerHurtbox, aimGrunts, playerCollide, null, this);
+                }
+                game.physics.arcade.overlap(singleShot.bullets, aimGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(doubleShot.bullets, aimGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(waveShotLT.bullets, aimGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(waveShotRT.bullets, aimGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(focusShotLT.bullets, aimGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(focusShotRT.bullets, aimGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(bombDispersal, aimGrunts, bulletCollide, null, this);
 
                 // straightGrunts
-            if (!playerStats.bombActive) {
-                game.physics.arcade.overlap(playerHurtbox, straightGrunts, playerCollide, null, this);
-            }
-            game.physics.arcade.overlap(singleShot.bullets, straightGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(doubleShot.bullets, straightGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(waveShotLT.bullets, straightGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(waveShotRT.bullets, straightGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(focusShotLT.bullets, straightGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(focusShotRT.bullets, straightGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(bombDispersal, straightGrunts, bulletCollide, null, this);
+                if (!playerStats.bombActive) {
+                    game.physics.arcade.overlap(playerHurtbox, straightGrunts, playerCollide, null, this);
+                }
+                game.physics.arcade.overlap(singleShot.bullets, straightGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(doubleShot.bullets, straightGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(waveShotLT.bullets, straightGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(waveShotRT.bullets, straightGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(focusShotLT.bullets, straightGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(focusShotRT.bullets, straightGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(bombDispersal, straightGrunts, bulletCollide, null, this);
 
                 // rotateGrunts
-            if (!playerStats.bombActive) {
-                game.physics.arcade.overlap(playerHurtbox, rotateGrunts, playerCollide, null, this);
-            }
-            game.physics.arcade.overlap(singleShot.bullets, rotateGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(doubleShot.bullets, rotateGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(waveShotLT.bullets, rotateGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(waveShotRT.bullets, rotateGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(focusShotLT.bullets, rotateGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(focusShotRT.bullets, rotateGrunts, bulletCollide, null, this);
-            game.physics.arcade.overlap(bombDispersal, rotateGrunts, bulletCollide, null, this);
-
-            // Check Enemy Bullet Collisions/Overlap with player and bomb if active
-            checkGruntBulletOverlap(aimGruntWeapons);
-            checkGruntBulletOverlap(straightGruntWeapons);
-            checkGruntBulletOverlap(rotateGruntWeapons);
-
-            // Vacuum Grunt Bullets when bomb is active
-            bombVacuum();
-
-            // Check Power Item Collisions
-            game.physics.arcade.overlap(playerSprite, smallP, playerPowerUp, null, this);
-            game.physics.arcade.overlap(playerSprite, largeP, playerPowerUp, null, this);
-
-            checkControls();
-
-            // Enemy Shooting
-            gruntFireSprite(aimGrunts, aimGruntWeapons, aimGruntWeaponDIS);
-            gruntStraightFire(straightGrunts, straightGruntWeapons, straightGruntWeaponDIS);
-            gruntRotateFire(rotateGrunts, rotateGruntWeapons, rotateGruntWeaponDIS);
-
-            // Scroll the bg
-            if (!bossSpawned) {
-                bg.tilePosition.y += 1;
-            }
-
-            // Check game over
-            if (!playerHurtbox.alive && gameOverText.visible === false) {
-                gameOverText.text = 'GAME OVER\nYOUR ENDING SCORE: ' + playerStats.score + '\nTo restart, refresh the browser';
-                gameOverText.visible = true;
-                var fadeInGameOver = game.add.tween(gameOverText);
-                fadeInGameOver.to({alpha: 0.2}, 1000, Phaser.Easing.Quintic.Out, false, 0, -1, true);
-                fadeInGameOver.start();
-            }
-
-            // Display POC Line at the beginning and check for breaches
-            displayPOCLine();
-            checkPOClineBreach();
-
-            startStageOne();
-            if (bgm.volume <= 0) {
-                bgm.stop();
-                console.log('bgm stopped');
-            }
-            if (bossSpawned) {
-                // boss movement
-                yuyukoFloat();
-
-                // boss collision
                 if (!playerStats.bombActive) {
-                    game.physics.arcade.overlap(playerHurtbox, yuyukoBoss, playerCollide, null, this);
-                    game.physics.arcade.overlap(playerHurtbox, bossTransition, playerCollide, null, this);
-                    game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherSignTracker, playerCollide, null, this);
-                    game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherRotationLT.bullets, playerCollide, null, this);
-                    game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherRotationRT.bullets, playerCollide, null, this);
-                    game.physics.arcade.overlap(playerHurtbox, bossLaserExplode, playerCollide, null, this);
-                    game.physics.arcade.overlap(playerHurtbox, bossWeaponBloomLT.bullets, playerCollide, null, this);
-                    game.physics.arcade.overlap(playerHurtbox, bossWeaponBloomRT.bullets, playerCollide, null, this);
-                    game.physics.arcade.overlap(playerHurtbox, bossBorderRed, playerCollide, null, this);
-                    // and more boss weapons colliding with player
+                    game.physics.arcade.overlap(playerHurtbox, rotateGrunts, playerCollide, null, this);
                 }
-                if (canHitBoss) {
-                    game.physics.arcade.overlap(singleShot.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
-                    game.physics.arcade.overlap(doubleShot.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
-                    game.physics.arcade.overlap(waveShotLT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
-                    game.physics.arcade.overlap(waveShotRT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
-                    game.physics.arcade.overlap(focusShotLT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
-                    game.physics.arcade.overlap(focusShotRT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
+                game.physics.arcade.overlap(singleShot.bullets, rotateGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(doubleShot.bullets, rotateGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(waveShotLT.bullets, rotateGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(waveShotRT.bullets, rotateGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(focusShotLT.bullets, rotateGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(focusShotRT.bullets, rotateGrunts, bulletCollide, null, this);
+                game.physics.arcade.overlap(bombDispersal, rotateGrunts, bulletCollide, null, this);
+
+                // Check Enemy Bullet Collisions/Overlap with player and bomb if active
+                checkGruntBulletOverlap(aimGruntWeapons);
+                checkGruntBulletOverlap(straightGruntWeapons);
+                checkGruntBulletOverlap(rotateGruntWeapons);
+
+                // Vacuum Grunt Bullets when bomb is active
+                bombVacuum();
+
+                // Check Power Item Collisions
+                game.physics.arcade.overlap(playerSprite, smallP, playerPowerUp, null, this);
+                game.physics.arcade.overlap(playerSprite, largeP, playerPowerUp, null, this);
+
+                checkControls();
+
+                // Enemy Shooting
+                gruntFireSprite(aimGrunts, aimGruntWeapons, aimGruntWeaponDIS);
+                gruntStraightFire(straightGrunts, straightGruntWeapons, straightGruntWeaponDIS);
+                gruntRotateFire(rotateGrunts, rotateGruntWeapons, rotateGruntWeaponDIS);
+
+                // Scroll the bg
+                if (!bossSpawned) {
+                    bg.tilePosition.y += 1;
                 }
-                game.physics.arcade.overlap(bossTransition, playerBombs, bombCycloneCollide, null, this);
-                game.physics.arcade.overlap(bossWeaponNetherSignTracker, playerBombs, bombCycloneCollide, null, this);
-                game.physics.arcade.overlap(bossWeaponNetherRotationLT.bullets, playerBombs, bombCycloneCollide, null, this);
-                game.physics.arcade.overlap(bossWeaponNetherRotationRT.bullets, playerBombs, bombCycloneCollide, null, this);
-                game.physics.arcade.overlap(bossLaserExplode, playerBombs, bombCycloneCollide, null, this);
-                game.physics.arcade.overlap(bossWeaponBloomLT, playerBombs, bombCycloneCollide, null, this);
-                game.physics.arcade.overlap(bossWeaponBloomRT, playerBombs, bombCycloneCollide, null, this);
-                // all other boss weapons with bomb
-                //game.physics.arcade.overlap(__SOME OTHER BOSS WEAPON__, playerBombs, bombCycloneCollide, null, this);
+
+                // Check game over
+                if (!playerHurtbox.alive && gameOverText.visible === false) {
+                    gameOverText.text = 'GAME OVER\nYOUR ENDING SCORE: ' + playerStats.score + '\nTo restart, refresh the browser';
+                    gameOverText.visible = true;
+                    var fadeInGameOver = game.add.tween(gameOverText);
+                    fadeInGameOver.to({alpha: 0.2}, 1000, Phaser.Easing.Quintic.Out, false, 0, -1, true);
+                    fadeInGameOver.start();
+                }
+                if (playerHurtbox.alive && gameClearText.visible === false && killedBoss) {
+                    gameClearText.text = 'WELL PLAYED!\nYou finished with a score of:\n' + playerStats.score;
+                    gameClearText.visible = true;
+                    clearYuyukoBullets();
+                }
+
+                // Display POC Line at the beginning and check for breaches
+                displayPOCLine();
+                checkPOClineBreach();
+
+                startStageOne();
+                if (bgm.volume <= 0) {
+                    bgm.stop();
+                    console.log('bgm stopped');
+                }
+                if (bossSpawned) {
+                    // boss movement
+                    yuyukoFloat();
+
+                    // boss collision
+                    if (!playerStats.bombActive) {
+                        game.physics.arcade.overlap(playerHurtbox, yuyukoBoss, playerCollide, null, this);
+                        game.physics.arcade.overlap(playerHurtbox, bossTransition, playerCollide, null, this);
+                        game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherSignTracker, playerCollide, null, this);
+                        game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherRotationLT.bullets, playerCollide, null, this);
+                        game.physics.arcade.overlap(playerHurtbox, bossWeaponNetherRotationRT.bullets, playerCollide, null, this);
+                        game.physics.arcade.overlap(playerHurtbox, bossLaserExplode, playerCollide, null, this);
+                        game.physics.arcade.overlap(playerHurtbox, bossWeaponBloomLT.bullets, playerCollide, null, this);
+                        game.physics.arcade.overlap(playerHurtbox, bossWeaponBloomRT.bullets, playerCollide, null, this);
+                        game.physics.arcade.overlap(playerHurtbox, bossBorderRed, playerCollide, null, this);
+                        game.physics.arcade.overlap(playerHurtbox, bossBorderYellow, playerCollide, null, this);
+                        game.physics.arcade.overlap(playerHurtbox, bossBorderGreen, playerCollide, null, this);
+                        game.physics.arcade.overlap(playerHurtbox, bossBorderBlue, playerCollide, null, this);
+                        // and more boss weapons colliding with player
+                    }
+                    if (canHitBoss) {
+                        game.physics.arcade.overlap(singleShot.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
+                        game.physics.arcade.overlap(doubleShot.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
+                        game.physics.arcade.overlap(waveShotLT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
+                        game.physics.arcade.overlap(waveShotRT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
+                        game.physics.arcade.overlap(focusShotLT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
+                        game.physics.arcade.overlap(focusShotRT.bullets, yuyukoBoss, yuyukoShotCollide, null, this);
+                    }
+                    game.physics.arcade.overlap(bossTransition, playerBombs, bombCycloneCollide, null, this);
+                    game.physics.arcade.overlap(bossWeaponNetherSignTracker, playerBombs, bombCycloneCollide, null, this);
+                    game.physics.arcade.overlap(bossWeaponNetherRotationLT.bullets, playerBombs, bombCycloneCollide, null, this);
+                    game.physics.arcade.overlap(bossWeaponNetherRotationRT.bullets, playerBombs, bombCycloneCollide, null, this);
+                    game.physics.arcade.overlap(bossLaserExplode, playerBombs, bombCycloneCollide, null, this);
+                    game.physics.arcade.overlap(bossWeaponBloomLT, playerBombs, bombCycloneCollide, null, this);
+                    game.physics.arcade.overlap(bossWeaponBloomRT, playerBombs, bombCycloneCollide, null, this);
+                    // all other boss weapons with bomb
+                    //game.physics.arcade.overlap(__SOME OTHER BOSS WEAPON__, playerBombs, bombCycloneCollide, null, this);
 
 
-                //game.physics.arcade.overlap(playerHurtbox, bossTrnznTwo, playerCollide, null, this);
-                //game.physics.arcade.overlap(playerHurtbox, bossTrnznThree, playerCollide, null, this);
-                // check bomb collision with each butterfly transition
-                // check bomb collision with yuyukoBoss
+                    //game.physics.arcade.overlap(playerHurtbox, bossTrnznTwo, playerCollide, null, this);
+                    //game.physics.arcade.overlap(playerHurtbox, bossTrnznThree, playerCollide, null, this);
+                    // check bomb collision with each butterfly transition
+                    // check bomb collision with yuyukoBoss
 
-                // boss shoot (check hp, and change spell card accordingly)
-                bossLasers.forEachAlive(function(laser) {
-                    burstLaser(laser.body.x, laser.body.y, 2);
-                }, this);
-                checkYuyukoHealthAndShoot();
-                bossTransition.callAll('bringToTop');
-                yuyukoBoss.moveDown();
+                    // boss shoot (check hp, and change spell card accordingly)
+                    bossLasers.forEachAlive(function (laser) {
+                        burstLaser(laser.body.x, laser.body.y, 2);
+                    }, this);
+                    checkYuyukoHealthAndShoot();
+                    bossTransition.callAll('bringToTop');
+                    yuyukoBoss.moveDown();
+                }
+                gameTimer++;
+                if (playerStats.bombActive) {
+                    playerStats.bombTimer++;
+                    playerBombs.callAll('bringToTop');
+                    // turn bombActive flag to false again at a certain time when bomb sound clip is over
+                }
             }
-            gameTimer++;
-            if (playerStats.bombActive) {
-                playerStats.bombTimer++;
-                playerBombs.callAll('bringToTop');
-                // turn bombActive flag to false again at a certain time when bomb sound clip is over
-            }
-
         }
 
         // DEBUGGING
@@ -945,11 +986,11 @@
                 doubleShot.fire();
 
                 focusShotLT.bullets.forEachAlive(function(bullet) {
-                    bullet.damageAmount = weaponStats.waveShotDamage + 1;
+                    bullet.damageAmount = weaponStats.waveShotDamage;
                     bullet.body.setSize(30, 13, -9, 9);
                 }, this);
                 focusShotRT.bullets.forEachAlive(function(bullet) {
-                    bullet.damageAmount = weaponStats.waveShotDamage + 1;
+                    bullet.damageAmount = weaponStats.waveShotDamage;
                     bullet.body.setSize(30, 13, -9, 9);
                 }, this);
 
@@ -1189,13 +1230,13 @@
                 playerCard.alpha = 0.7
             }
             else {
-                playerCardActive = true;
-                var newCard = game.add.sprite(x, y, spriteName);
-                game.physics.arcade.enable(newCard);
-                newCard.anchor.setTo(0.5);
-                newCard.body.velocity.x = xVel;
-                newCard.body.velocity.y = yVel;
-                newCard.alpha = 0.7;
+                bossCardActive = true;
+                bossCard = game.add.sprite(x, y, spriteName);
+                game.physics.arcade.enable(bossCard);
+                bossCard.anchor.setTo(0.5);
+                bossCard.body.velocity.x = xVel;
+                bossCard.body.velocity.y = yVel;
+                bossCard.alpha = 0.7;
             }
         }
         function burstSmallPower(spriteX, spriteY, spriteYvel, amount) {
@@ -1712,6 +1753,7 @@
                 bossBGM.stop();
                 clearYuyukoBullets();
                 clearYuyukoBullets();
+                killedBoss = true;
             }, this);
 
         }
@@ -1809,6 +1851,7 @@
                 if (bossPauseTimer >= 100) {
                     bossPause = false;
                     yuyukoBoss.health = 5000;
+                    revealCard(425, 450, 40, 0, 'bossCard');
                     phaseActivateSFX.play();
                     canHitBoss = true;
                     // show boss card tween
@@ -1844,6 +1887,7 @@
                 if (bossPauseTimer >= 100) {
                     bossPause = true;
                     yuyukoBoss.health = 4000;
+                    revealCard(425, 450, 40, 0, 'bossCard');
                     phaseActivateSFX.play();
                     canHitBoss = true;
                     // show boss card tween
@@ -1874,6 +1918,7 @@
                 if (bossPauseTimer >= 100) {
                     bossPause = false;
                     yuyukoBoss.health = 3000;
+                    revealCard(425, 450, 40, 0, 'bossCard');
                     phaseActivateSFX.play();
                     canHitBoss = true;
                     // show boss card tween
@@ -1909,6 +1954,7 @@
                 if (bossPauseTimer >= 100) {
                     bossPause = true;
                     yuyukoBoss.health = 2000;
+                    revealCard(425, 450, 40, 0, 'bossCard');
                     phaseActivateSFX.play();
                     canHitBoss = true;
                     // show boss card tween
@@ -1944,9 +1990,9 @@
                 if (bossPauseTimer >= 100) {
                     bossPause = false;
                     yuyukoBoss.health = 1000;
+                    revealCard(425, 450, 40, 0, 'bossCard');
                     phaseActivateSFX.play();
                     canHitBoss = true;
-                    // show boss card tween
 
                 }
             }
@@ -1959,19 +2005,26 @@
                 if (game.time.now > bossWeaponBorderTimer) {
                     bossSpawnButterfly(20, 2, 0, 100, 'butterflyRed', bossBorderRed, true, 90);
                     bossSpawnButterfly(492, 598, 0, -100, 'butterflyRed', bossBorderRed, true, 270);
+
+                    bossSpawnButterfly(40, 598, 0, -100, 'butterflyYellow', bossBorderYellow, true, 270);
+                    bossSpawnButterfly(472, 2, 0, 100, 'butterflyYellow', bossBorderYellow, true, 90);
+
+                    bossSpawnButterfly(60, 2, 0, 100, 'butterflyGreen', bossBorderGreen, true, 90);
+                    bossSpawnButterfly(452, 598, 0, -100, 'butterflyGreen', bossBorderGreen, true, 270);
+
+                    bossSpawnButterfly(80, 598, 0, -100, 'butterflyBlue', bossBorderBlue, true, 270);
+                    bossSpawnButterfly(432, 2, 0, 100, 'butterflyBlue', bossBorderBlue, true, 90);
                     bossWeaponBorderTimer = game.time.now + 800;
                     console.log('spawned');
                 }
-                //if (game.time.now > bossWeaponBorderTimer && yuyukoBoss.health <= some health) spawn some border should be yellow
-                // 2nd, 3rd, and 4th should be here
 
                 // Bloom Weapons
-                if (bossWeaponBloomTimer === 0) {
+                if (bossWeaponBloomTimer === 0 && !killedBoss) {
                     bossWeaponBloomLT.fire();
                     bossWeaponBloomRT.fire();
                     bossWeaponBloomTimer = game.time.now + bossWeaponBloomFireRate;
                 }
-                else if (game.time.now > bossWeaponBloomTimer) {
+                else if (game.time.now > bossWeaponBloomTimer && !killedBoss) {
                     bossWeaponBloomLT.fireAngle += 25;
                     bossWeaponBloomRT.fireAngle -= 25;
                     bossWeaponBloomLT.fire();
@@ -2187,9 +2240,14 @@
                     //bgm fade
                     bgm.fadeOut(7000);
                     //tween fade into black and then out to new background
+                    fadeBG = game.add.sprite(game.world.centerX, game.world.centerY, 'fade');
+                    fadeBG.anchor.setTo(0.5);
+                    fadeBG.alpha = 0;
+                    game.add.tween(fadeBG).to({alpha: 1}, 7000, Phaser.Easing.Linear.None, true, 0, 0, true);
                     break;
-                case 4950:
+                case 5200:
                     spawnYuyuko();
+                    bgm.stop();
                     break;
                 default:
                     //console.log(gameTimer);
